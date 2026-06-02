@@ -31,25 +31,48 @@ new RGBELoader().load('/models/HDRI_STUDIO_vol2_004.hdr', (texture) => {
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
 camera.position.set(0, 0, 22)
 
+// ─── LIGHTING ────────────────────
 // ─── LIGHTING ────────────────────────────────────────────────────────────────
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
+
+// Soft ambient base
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
 scene.add(ambientLight)
 
-const lights = [
-  { color: 0xff3366, pos: [15, 10, 8],    intensity: 3.5 },
-  { color: 0x3366ff, pos: [-15, -8, 6],   intensity: 3.5 },
-  { color: 0x00ffcc, pos: [0, 15, -5],    intensity: 2.5 },
-  { color: 0xff9900, pos: [-10, -12, 10], intensity: 2.0 },
-  { color: 0xaa44ff, pos: [12, -10, 4],   intensity: 2.0 },
+// Key light — main light from top left, warm white
+const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.5)
+keyLight.position.set(-8, 12, 8)
+keyLight.castShadow = true
+keyLight.shadow.mapSize.width = 2048
+keyLight.shadow.mapSize.height = 2048
+scene.add(keyLight)
+
+// Fill light — soft from right, cool white to balance
+const fillLight = new THREE.DirectionalLight(0xe8f0ff, 1.2)
+fillLight.position.set(10, 4, 6)
+scene.add(fillLight)
+
+// Rim light — back light to separate objects from background
+const rimLight = new THREE.DirectionalLight(0xffffff, 1.8)
+rimLight.position.set(0, -6, -12)
+scene.add(rimLight)
+
+// Ground bounce — subtle warm light from below
+const bounceLight = new THREE.DirectionalLight(0xfff8ee, 0.4)
+bounceLight.position.set(0, -10, 4)
+scene.add(bounceLight)
+
+// Subtle point lights for metallic reflections
+const studioPoints = [
+  { color: 0xffffff, pos: [-12, 8, 6],  intensity: 1.2, distance: 40 },
+  { color: 0xfff5e6, pos: [12, 8, 6],   intensity: 1.2, distance: 40 },
+  { color: 0xe8f0ff, pos: [0, -8, 10],  intensity: 0.8, distance: 30 },
 ]
 
-const pointLights = lights.map((l) => {
-  const pl = new THREE.PointLight(l.color, l.intensity, 60)
+studioPoints.forEach(l => {
+  const pl = new THREE.PointLight(l.color, l.intensity, l.distance)
   pl.position.set(...l.pos)
   scene.add(pl)
-  return pl
 })
-
 // ─── MATERIALS ───────────────────────────────────────────────────────────────
 function makeMetalMaterial(color) {
   return new THREE.MeshStandardMaterial({
@@ -468,13 +491,6 @@ function animate() {
 
   container.rotation.x += 0.0036
 
-  pointLights.forEach((pl, i) => {
-    const angle = t * 0.2 + i * (Math.PI * 2 / lights.length)
-    const r = 16
-    pl.position.x = Math.cos(angle) * r
-    pl.position.y = Math.sin(angle * 0.7) * 10
-    pl.position.z = Math.sin(angle) * r * 0.5 + 4
-  })
 
   if (frame % 3 === 0) {
     raycaster.setFromCamera(mouse, camera)
