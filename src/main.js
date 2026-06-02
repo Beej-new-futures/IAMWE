@@ -11,7 +11,7 @@ renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1.0
-renderer.outputColorSpace = THREE.SRGBColorSpace // updated from outputEncoding
+renderer.outputColorSpace = THREE.SRGBColorSpace
 renderer.setClearColor(0xffffff, 1)
 renderer.sortObjects = true
 
@@ -31,7 +31,6 @@ new RGBELoader().load('/models/HDRI_STUDIO_vol2_004.hdr', (texture) => {
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
 camera.position.set(0, 0, 22)
 
-// ─── LIGHTING ────────────────────
 // ─── LIGHTING ────────────────────────────────────────────────────────────────
 
 // Soft ambient base
@@ -73,6 +72,7 @@ studioPoints.forEach(l => {
   pl.position.set(...l.pos)
   scene.add(pl)
 })
+
 // ─── MATERIALS ───────────────────────────────────────────────────────────────
 function makeMetalMaterial(color) {
   return new THREE.MeshStandardMaterial({
@@ -92,6 +92,62 @@ function makeGlassMaterial(color) {
     opacity: 0.55,
   })
 }
+
+// ─── BLOB IRIDESCENT SHADER ──────────────────────────────────────────────────
+const blobMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: { value: 0 },
+  },
+  vertexShader: `
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    varying vec3 vWorldPos;
+
+    void main() {
+      vec4 worldPos = modelMatrix * vec4(position, 1.0);
+      vWorldPos = worldPos.xyz;
+      vNormal = normalize(normalMatrix * normal);
+      vViewDir = normalize(cameraPosition - worldPos.xyz);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    varying vec3 vWorldPos;
+
+    vec3 hsl2rgb(vec3 c) {
+      vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+      return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+    }
+
+    void main() {
+      float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
+      float gradientPos = vWorldPos.y * 0.08 + vWorldPos.x * 0.05 + uTime * 0.12;
+
+      // Pink = 0.88, Blue = 0.62
+      float hue = mix(0.88, 0.62, sin(gradientPos) * 0.5 + 0.5);
+
+      // Iridescent shift on edges
+      hue += fresnel * 0.25;
+      hue = mod(hue, 1.0);
+
+      float lightness = mix(0.45, 0.72, fresnel);
+      float saturation = mix(0.7, 1.0, fresnel);
+
+      vec3 col = hsl2rgb(vec3(hue, saturation, lightness));
+
+      // Specular highlight
+      vec3 halfVec = normalize(vViewDir + normalize(vec3(1.0, 2.0, 1.0)));
+      float spec = pow(max(dot(vNormal, halfVec), 0.0), 32.0) * 0.6;
+      col += vec3(spec);
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `,
+  side: THREE.DoubleSide,
+})
 
 // ─── PHYSICS HELPERS ─────────────────────────────────────────────────────────
 const DAMPING = 0.998
@@ -213,7 +269,7 @@ function applyPictureOneMaterials(model) {
   const PICTURE_NAME   = 'Plane1 Mat'
 
   texLoader.load('/models/pic_image_1.png', (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace // updated from tex.encoding
+    tex.colorSpace = THREE.SRGBColorSpace
     tex.flipY = false
 
     const pictureMat = new THREE.MeshStandardMaterial({
@@ -247,11 +303,17 @@ function loadModel(path) {
         if (child.isMesh) {
           child.castShadow = true
           child.receiveShadow = true
-          if (child.material.map) {
-            child.material.map.colorSpace = THREE.SRGBColorSpace
+
+          // Apply blob iridescent shader
+          if (path.includes('BLOB_02.glb')) {
+            child.material = blobMaterial.clone()
+          } else if (!path.includes('IAMWE_PICTURE_ONE.glb')) {
+            if (child.material.map) {
+              child.material.map.colorSpace = THREE.SRGBColorSpace
+            }
+            child.material.envMapIntensity = 1.2
+            child.material.needsUpdate = true
           }
-          child.material.envMapIntensity = 1.2
-          child.material.needsUpdate = true
         }
       })
 
@@ -464,6 +526,9 @@ function animate() {
 
   const t = clock.getElapsedTime()
 
+  // Update blob shader time
+  blobMaterial.uniforms.uTime.value = t
+
   scrollY += (targetScrollY - scrollY) * 0.06
   const scrollProgress = scrollY / MAX_SCROLL
 
@@ -490,7 +555,6 @@ function animate() {
   }
 
   container.rotation.x += 0.0036
-
 
   if (frame % 3 === 0) {
     raycaster.setFromCamera(mouse, camera)
