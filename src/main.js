@@ -134,7 +134,7 @@ const blobMaterial = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
 })
 
-// ─── NEON YELLOW PERSPEX MATERIAL ────────────────────────────────────────────
+// ─── NEON YELLOW PERSPEX ─────────────────────────────────────────────────────
 const neonPerspex = new THREE.MeshStandardMaterial({
   color:             0xffff00,
   emissive:          0xdddd00,
@@ -146,6 +146,14 @@ const neonPerspex = new THREE.MeshStandardMaterial({
   side:              THREE.DoubleSide,
   depthWrite:        false,
   envMapIntensity:   1.5,
+})
+
+// ─── DARK ROD MATERIAL ───────────────────────────────────────────────────────
+const darkRod = new THREE.MeshStandardMaterial({
+  color:           0x111111,
+  metalness:       0.9,
+  roughness:       0.1,
+  envMapIntensity: 1.2,
 })
 
 // ─── PHYSICS HELPERS ─────────────────────────────────────────────────────────
@@ -234,14 +242,6 @@ for (let i = 0; i < 0; i++) {
 // ─── GLB MODELS ──────────────────────────────────────────────────────────────
 const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
-const texLoader = new THREE.TextureLoader()
-
-const darkRod = new THREE.MeshStandardMaterial({
-  color:           0x111111,
-  metalness:       0.9,
-  roughness:       0.1,
-  envMapIntensity: 1.2,
-})
 
 function loadModel(path) {
   loader.load(
@@ -259,28 +259,21 @@ function loadModel(path) {
           child.material = blobMaterial.clone()
 
         } else if (path.includes('IAMWE_PICTURE_ONE.glb')) {
-          // Perspex panels — neon yellow
-          // Rods — dark metal
-          // Picture plane — keep GLB texture
-          const name = child.name || ''
-          const matName = (child.material && child.material.name) ? child.material.name : ''
+          const matName = child.material ? child.material.name : ''
 
-          if (name.toLowerCase().includes('rod') || matName.toLowerCase().includes('rod')) {
-            child.material = darkRod
-          } else if (
-            name.toLowerCase().includes('perspex') ||
-            name.toLowerCase().includes('plane1-mat1') ||
-            name.toLowerCase().includes('plane1-mat2') ||
-            matName.toLowerCase().includes('perspex')
-          ) {
+          if (matName === 'Mat' || matName === 'Mat.1') {
+            // Neon yellow perspex panels
             child.material = neonPerspex
-          } else {
-            // Picture plane — use GLB texture, show both sides
+          } else if (matName === 'Mat.2') {
+            // Picture plane — keep GLB texture, show both sides
             child.material.side = THREE.DoubleSide
             if (child.material.map) {
               child.material.map.colorSpace = THREE.SRGBColorSpace
             }
             child.material.needsUpdate = true
+          } else {
+            // Rods — dark metal
+            child.material = darkRod
           }
 
         } else {
