@@ -333,14 +333,34 @@ function finaliseWorm() {
   const wrapper = new THREE.Group()
   wrapper.add(mesh)
 
-  // Centre the worm inside the wrapper
+  // Centre the worm inside the wrapper — keep world position intact
   const bbox = new THREE.Box3().setFromObject(mesh)
   const center = new THREE.Vector3()
   bbox.getCenter(center)
   mesh.position.sub(center)
   wrapper.position.copy(center)
 
-  assignPhysics(wrapper, WORM_RADIUS * drawPoints.length * 0.3)
+  // Gentle release velocity — slow drift away from where cursor last was
+  // Direction: away from last mouse point in XY, slowly forward in Z
+  const lastPt = drawPoints[drawPoints.length - 1]
+  const firstPt = drawPoints[0]
+  const driftDir = new THREE.Vector3()
+    .subVectors(lastPt, firstPt)
+    .normalize()
+    .multiplyScalar(0.012) // very gentle
+
+  wrapper.userData.vel = new THREE.Vector3(
+    driftDir.x + (Math.random() - 0.5) * 0.004,
+    driftDir.y + (Math.random() - 0.5) * 0.004,
+    -0.008, // slowly drift away from camera
+  )
+  wrapper.userData.angVel = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.003,
+    (Math.random() - 0.5) * 0.003,
+    (Math.random() - 0.5) * 0.003,
+  )
+  wrapper.userData.radius = WORM_RADIUS * drawPoints.length * 0.3
+
   container.add(wrapper)
   objects.push(wrapper)
   drawnWorms.push(wrapper)
