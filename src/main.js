@@ -153,7 +153,7 @@ const bgGeometries = [
   () => new THREE.TetrahedronGeometry(2.1 + Math.random() * 1.2),
 ]
 
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < 0; i++) {
   const geom = bgGeometries[i % bgGeometries.length]()
 
   let mat
@@ -186,7 +186,7 @@ for (let i = 0; i < 8; i++) {
 }
 
 // ─── GLB MODELS ──────────────────────────────────────────────────────────────
-const MODEL_TARGET_SIZE = 3.5
+const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
 const texLoader = new THREE.TextureLoader()
 
