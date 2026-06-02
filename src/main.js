@@ -33,11 +33,9 @@ camera.position.set(0, 0, 22)
 
 // ─── LIGHTING ────────────────────────────────────────────────────────────────
 
-// Soft ambient base
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
 scene.add(ambientLight)
 
-// Key light — main light from top left, warm white
 const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.5)
 keyLight.position.set(-8, 12, 8)
 keyLight.castShadow = true
@@ -45,22 +43,18 @@ keyLight.shadow.mapSize.width = 2048
 keyLight.shadow.mapSize.height = 2048
 scene.add(keyLight)
 
-// Fill light — soft from right, cool white to balance
 const fillLight = new THREE.DirectionalLight(0xe8f0ff, 1.2)
 fillLight.position.set(10, 4, 6)
 scene.add(fillLight)
 
-// Rim light — back light to separate objects from background
 const rimLight = new THREE.DirectionalLight(0xffffff, 1.8)
 rimLight.position.set(0, -6, -12)
 scene.add(rimLight)
 
-// Ground bounce — subtle warm light from below
 const bounceLight = new THREE.DirectionalLight(0xfff8ee, 0.4)
 bounceLight.position.set(0, -10, 4)
 scene.add(bounceLight)
 
-// Subtle point lights for metallic reflections
 const studioPoints = [
   { color: 0xffffff, pos: [-12, 8, 6],  intensity: 1.2, distance: 40 },
   { color: 0xfff5e6, pos: [12, 8, 6],   intensity: 1.2, distance: 40 },
@@ -125,28 +119,33 @@ const blobMaterial = new THREE.ShaderMaterial({
     void main() {
       float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
       float gradientPos = vWorldPos.y * 0.08 + vWorldPos.x * 0.05 + uTime * 0.12;
-
-      // Pink = 0.88, Blue = 0.62
       float hue = mix(0.88, 0.62, sin(gradientPos) * 0.5 + 0.5);
-
-      // Iridescent shift on edges
       hue += fresnel * 0.25;
       hue = mod(hue, 1.0);
-
       float lightness = mix(0.45, 0.72, fresnel);
       float saturation = mix(0.7, 1.0, fresnel);
-
       vec3 col = hsl2rgb(vec3(hue, saturation, lightness));
-
-      // Specular highlight
       vec3 halfVec = normalize(vViewDir + normalize(vec3(1.0, 2.0, 1.0)));
       float spec = pow(max(dot(vNormal, halfVec), 0.0), 32.0) * 0.6;
       col += vec3(spec);
-
       gl_FragColor = vec4(col, 1.0);
     }
   `,
   side: THREE.DoubleSide,
+})
+
+// ─── NEON YELLOW PERSPEX MATERIAL ────────────────────────────────────────────
+const neonPerspex = new THREE.MeshStandardMaterial({
+  color:             0xffff00,
+  emissive:          0xdddd00,
+  emissiveIntensity: 0.5,
+  metalness:         0.0,
+  roughness:         0.05,
+  transparent:       true,
+  opacity:           0.72,
+  side:              THREE.DoubleSide,
+  depthWrite:        false,
+  envMapIntensity:   1.5,
 })
 
 // ─── PHYSICS HELPERS ─────────────────────────────────────────────────────────
@@ -211,16 +210,10 @@ const bgGeometries = [
 
 for (let i = 0; i < 0; i++) {
   const geom = bgGeometries[i % bgGeometries.length]()
-
   let mat
   const r = Math.random()
   if (r < 0.6) {
-    mat = new THREE.MeshStandardMaterial({
-      metalness: 1.0,
-      roughness: 0.05,
-      envMapIntensity: 1.8,
-      color: 0xffffff,
-    })
+    mat = new THREE.MeshStandardMaterial({ metalness: 1.0, roughness: 0.05, envMapIntensity: 1.8, color: 0xffffff })
   } else if (r < 0.8) {
     const cols = [0x111111, 0x1a1a2e, 0x0a0a0a, 0x1c1c1c]
     mat = makeMetalMaterial(cols[Math.floor(Math.random() * cols.length)])
@@ -228,15 +221,12 @@ for (let i = 0; i < 0; i++) {
     const cols = [0x8888ff, 0xffaacc, 0x88ffdd, 0xffffff]
     mat = makeGlassMaterial(cols[Math.floor(Math.random() * cols.length)])
   }
-
   const mesh = new THREE.Mesh(geom, mat)
   randomPosition(mesh)
-
   const bbox = new THREE.Box3().setFromObject(mesh)
   const size = new THREE.Vector3()
   bbox.getSize(size)
   assignPhysics(mesh, size.length() * 0.4)
-
   container.add(mesh)
   objects.push(mesh)
 }
@@ -246,52 +236,12 @@ const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
 const texLoader = new THREE.TextureLoader()
 
-const frostedPerspex = new THREE.MeshStandardMaterial({
-  color:             0xffff00,
-  emissive:          0xffff00,
-  emissiveIntensity: 1.2,
-  transparent:       true,
-  opacity:           0.6,
-  side:              THREE.DoubleSide,
-  depthWrite:        false,
-  envMapIntensity:   1.2,
-})
-
 const darkRod = new THREE.MeshStandardMaterial({
   color:           0x111111,
   metalness:       0.9,
   roughness:       0.1,
   envMapIntensity: 1.2,
 })
-
-function applyPictureOneMaterials(model) {
-  const PERSPEX_MESHES = new Set(['Plane1-Mat1', 'Plane1-Mat2'])
-  const PICTURE_NAME   = 'Plane1 Mat'
-
-  texLoader.load('/models/pic_image_1.png', (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace
-    tex.flipY = false
-
-    const pictureMat = new THREE.MeshStandardMaterial({
-      map:             tex,
-      metalness:       0,
-      roughness:       0.8,
-      side:            THREE.DoubleSide,
-      envMapIntensity: 1.2,
-    })
-
-    model.traverse((child) => {
-      if (!child.isMesh) return
-      if (child.name === PICTURE_NAME) {
-        child.material = pictureMat
-      } else if (PERSPEX_MESHES.has(child.name)) {
-        child.material = frostedPerspex
-      } else {
-        child.material = darkRod
-      }
-    })
-  })
-}
 
 function loadModel(path) {
   loader.load(
@@ -300,26 +250,47 @@ function loadModel(path) {
       const model = gltf.scene
 
       model.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true
-          child.receiveShadow = true
+        if (!child.isMesh) return
+        child.castShadow = true
+        child.receiveShadow = true
 
-          // Apply blob iridescent shader
-          if (path.includes('BLOB_02.glb')) {
-            child.material = blobMaterial.clone()
-          } else if (!path.includes('IAMWE_PICTURE_ONE.glb')) {
+        if (path.includes('BLOB_02.glb')) {
+          // Iridescent pink/blue shader
+          child.material = blobMaterial.clone()
+
+        } else if (path.includes('IAMWE_PICTURE_ONE.glb')) {
+          // Perspex panels — neon yellow
+          // Rods — dark metal
+          // Picture plane — keep GLB texture
+          const name = child.name || ''
+          const matName = (child.material && child.material.name) ? child.material.name : ''
+
+          if (name.toLowerCase().includes('rod') || matName.toLowerCase().includes('rod')) {
+            child.material = darkRod
+          } else if (
+            name.toLowerCase().includes('perspex') ||
+            name.toLowerCase().includes('plane1-mat1') ||
+            name.toLowerCase().includes('plane1-mat2') ||
+            matName.toLowerCase().includes('perspex')
+          ) {
+            child.material = neonPerspex
+          } else {
+            // Picture plane — use GLB texture, show both sides
+            child.material.side = THREE.DoubleSide
             if (child.material.map) {
               child.material.map.colorSpace = THREE.SRGBColorSpace
             }
-            child.material.envMapIntensity = 1.2
             child.material.needsUpdate = true
           }
+
+        } else {
+          if (child.material.map) {
+            child.material.map.colorSpace = THREE.SRGBColorSpace
+          }
+          child.material.envMapIntensity = 1.2
+          child.material.needsUpdate = true
         }
       })
-
-      if (path.includes('IAMWE_PICTURE_ONE.glb')) {
-        applyPictureOneMaterials(model)
-      }
 
       const bboxRaw = new THREE.Box3().setFromObject(model)
       const sizeRaw = new THREE.Vector3()
