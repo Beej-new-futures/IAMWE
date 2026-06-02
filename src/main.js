@@ -32,7 +32,6 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 camera.position.set(0, 0, 22)
 
 // ─── LIGHTING ────────────────────────────────────────────────────────────────
-
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
 scene.add(ambientLight)
 
@@ -60,7 +59,6 @@ const studioPoints = [
   { color: 0xfff5e6, pos: [12, 8, 6],   intensity: 1.2, distance: 40 },
   { color: 0xe8f0ff, pos: [0, -8, 10],  intensity: 0.8, distance: 30 },
 ]
-
 studioPoints.forEach(l => {
   const pl = new THREE.PointLight(l.color, l.intensity, l.distance)
   pl.position.set(...l.pos)
@@ -70,33 +68,23 @@ studioPoints.forEach(l => {
 // ─── MATERIALS ───────────────────────────────────────────────────────────────
 function makeMetalMaterial(color) {
   return new THREE.MeshStandardMaterial({
-    color,
-    metalness: 0.95,
-    roughness: 0.05,
-    envMapIntensity: 1.0,
+    color, metalness: 0.95, roughness: 0.05, envMapIntensity: 1.0,
   })
 }
 
 function makeGlassMaterial(color) {
   return new THREE.MeshStandardMaterial({
-    color,
-    metalness: 0.1,
-    roughness: 0.0,
-    transparent: true,
-    opacity: 0.55,
+    color, metalness: 0.1, roughness: 0.0, transparent: true, opacity: 0.55,
   })
 }
 
-// ─── BLOB IRIDESCENT SHADER ──────────────────────────────────────────────────
+// ─── IRIDESCENT SHADER (shared by blob GLB + drawn worms) ───────────────────
 const blobMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    uTime: { value: 0 },
-  },
+  uniforms: { uTime: { value: 0 } },
   vertexShader: `
     varying vec3 vNormal;
     varying vec3 vViewDir;
     varying vec3 vWorldPos;
-
     void main() {
       vec4 worldPos = modelMatrix * vec4(position, 1.0);
       vWorldPos = worldPos.xyz;
@@ -110,23 +98,21 @@ const blobMaterial = new THREE.ShaderMaterial({
     varying vec3 vNormal;
     varying vec3 vViewDir;
     varying vec3 vWorldPos;
-
     vec3 hsl2rgb(vec3 c) {
-      vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
-      return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+      vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);
+      return c.z+c.y*(rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
     }
-
     void main() {
       float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
-      float gradientPos = vWorldPos.y * 0.08 + vWorldPos.x * 0.05 + uTime * 0.12;
-      float hue = mix(0.88, 0.62, sin(gradientPos) * 0.5 + 0.5);
+      float gradientPos = vWorldPos.y*0.08 + vWorldPos.x*0.05 + uTime*0.12;
+      float hue = mix(0.88, 0.62, sin(gradientPos)*0.5+0.5);
       hue += fresnel * 0.25;
       hue = mod(hue, 1.0);
       float lightness = mix(0.45, 0.72, fresnel);
       float saturation = mix(0.7, 1.0, fresnel);
       vec3 col = hsl2rgb(vec3(hue, saturation, lightness));
-      vec3 halfVec = normalize(vViewDir + normalize(vec3(1.0, 2.0, 1.0)));
-      float spec = pow(max(dot(vNormal, halfVec), 0.0), 32.0) * 0.6;
+      vec3 halfVec = normalize(vViewDir + normalize(vec3(1.0,2.0,1.0)));
+      float spec = pow(max(dot(vNormal,halfVec),0.0),32.0)*0.6;
       col += vec3(spec);
       gl_FragColor = vec4(col, 1.0);
     }
@@ -136,24 +122,13 @@ const blobMaterial = new THREE.ShaderMaterial({
 
 // ─── NEON YELLOW PERSPEX ─────────────────────────────────────────────────────
 const neonPerspex = new THREE.MeshStandardMaterial({
-  color:             0xffff00,
-  emissive:          0xdddd00,
-  emissiveIntensity: 0.5,
-  metalness:         0.0,
-  roughness:         0.05,
-  transparent:       true,
-  opacity:           0.72,
-  side:              THREE.DoubleSide,
-  depthWrite:        false,
-  envMapIntensity:   1.5,
+  color: 0xffff00, emissive: 0xdddd00, emissiveIntensity: 0.5,
+  metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.72,
+  side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.5,
 })
 
-// ─── DARK ROD MATERIAL ───────────────────────────────────────────────────────
 const darkRod = new THREE.MeshStandardMaterial({
-  color:           0x111111,
-  metalness:       0.9,
-  roughness:       0.1,
-  envMapIntensity: 1.2,
+  color: 0x111111, metalness: 0.9, roughness: 0.1, envMapIntensity: 1.2,
 })
 
 // ─── PHYSICS HELPERS ─────────────────────────────────────────────────────────
@@ -168,7 +143,6 @@ function updateBoundaries() {
   BOUNDARY_X = halfW * 0.9
   BOUNDARY_Y = halfH * 0.9
 }
-
 updateBoundaries()
 
 function assignPhysics(obj, radius) {
@@ -201,7 +175,6 @@ function randomPosition(obj) {
 // ─── CONTAINER + OBJECTS ─────────────────────────────────────────────────────
 const container = new THREE.Group()
 scene.add(container)
-
 const objects = []
 
 // ─── BACKGROUND PRIMITIVES ───────────────────────────────────────────────────
@@ -244,75 +217,190 @@ const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
 
 function loadModel(path) {
-  loader.load(
-    path,
-    (gltf) => {
-      const model = gltf.scene
-
-      model.traverse((child) => {
-        if (!child.isMesh) return
-        child.castShadow = true
-        child.receiveShadow = true
-
-        if (path.includes('BLOB_02.glb')) {
-          // Iridescent pink/blue shader
-          child.material = blobMaterial.clone()
-
-        } else if (path.includes('IAMWE_PICTURE_ONE.glb')) {
-          const matName = child.material ? child.material.name : ''
-
-          if (matName === 'Mat' || matName === 'Mat.1') {
-            // Neon yellow perspex panels
-            child.material = neonPerspex
-          } else if (matName === 'Mat.2') {
-            // Picture plane — keep GLB texture, show both sides
-            child.material.side = THREE.DoubleSide
-            if (child.material.map) {
-              child.material.map.colorSpace = THREE.SRGBColorSpace
-            }
-            child.material.needsUpdate = true
-          } else {
-            // Rods — dark metal
-            child.material = darkRod
-          }
-
-        } else {
-          if (child.material.map) {
-            child.material.map.colorSpace = THREE.SRGBColorSpace
-          }
-          child.material.envMapIntensity = 1.2
+  loader.load(path, (gltf) => {
+    const model = gltf.scene
+    model.traverse((child) => {
+      if (!child.isMesh) return
+      child.castShadow = true
+      child.receiveShadow = true
+      if (path.includes('BLOB_02.glb')) {
+        child.material = blobMaterial.clone()
+      } else if (path.includes('IAMWE_PICTURE_ONE.glb')) {
+        const matName = child.material ? child.material.name : ''
+        if (matName === 'Mat' || matName === 'Mat.1') {
+          child.material = neonPerspex
+        } else if (matName === 'Mat.2') {
+          child.material.side = THREE.DoubleSide
+          if (child.material.map) child.material.map.colorSpace = THREE.SRGBColorSpace
           child.material.needsUpdate = true
+        } else {
+          child.material = darkRod
         }
-      })
+      } else {
+        if (child.material.map) child.material.map.colorSpace = THREE.SRGBColorSpace
+        child.material.envMapIntensity = 1.2
+        child.material.needsUpdate = true
+      }
+    })
 
-      const bboxRaw = new THREE.Box3().setFromObject(model)
-      const sizeRaw = new THREE.Vector3()
-      bboxRaw.getSize(sizeRaw)
-      const maxDim = Math.max(sizeRaw.x, sizeRaw.y, sizeRaw.z)
-      if (maxDim > 0) model.scale.setScalar(MODEL_TARGET_SIZE / maxDim)
+    const bboxRaw = new THREE.Box3().setFromObject(model)
+    const sizeRaw = new THREE.Vector3()
+    bboxRaw.getSize(sizeRaw)
+    const maxDim = Math.max(sizeRaw.x, sizeRaw.y, sizeRaw.z)
+    if (maxDim > 0) model.scale.setScalar(MODEL_TARGET_SIZE / maxDim)
 
-      const wrapper = new THREE.Group()
-      const bboxScaled = new THREE.Box3().setFromObject(model)
-      const center = new THREE.Vector3()
-      bboxScaled.getCenter(center)
-      model.position.sub(center)
+    const wrapper = new THREE.Group()
+    const bboxScaled = new THREE.Box3().setFromObject(model)
+    const center = new THREE.Vector3()
+    bboxScaled.getCenter(center)
+    model.position.sub(center)
 
-      wrapper.add(model)
-      randomPosition(wrapper)
-      assignPhysics(wrapper, MODEL_TARGET_SIZE * 0.55)
-
-      container.add(wrapper)
-      objects.push(wrapper)
-    },
-    undefined,
-    (err) => console.warn('Could not load', path, err),
-  )
+    wrapper.add(model)
+    randomPosition(wrapper)
+    assignPhysics(wrapper, MODEL_TARGET_SIZE * 0.55)
+    container.add(wrapper)
+    objects.push(wrapper)
+  }, undefined, (err) => console.warn('Could not load', path, err))
 }
 
 fetch('/models/models.json')
   .then((r) => r.json())
   .then((files) => files.forEach((name) => loadModel(`/models/${name}`)))
   .catch((err) => console.warn('Could not load models.json', err))
+
+// ─── WORM DRAWING ────────────────────────────────────────────────────────────
+const MAX_WORMS = 3
+const WORM_RADIUS = 0.4
+const WORM_SEGMENTS = 8
+const WORM_Z_SPEED = 0.02   // how fast it pushes away from camera per frame
+const MIN_POINT_DIST = 0.15 // min distance before adding a new point
+
+const drawnWorms = []       // finished worms in scene
+let isDrawing = false
+let drawPoints = []         // current in-progress worm points
+let currentDrawZ = 0        // current Z depth while drawing
+let previewMesh = null      // live preview mesh while drawing
+const raycasterDraw = new THREE.Raycaster()
+const drawMouse = new THREE.Vector2()
+
+// Convert mouse position to 3D world point at given Z depth
+function mouseToWorld(mx, my, z) {
+  // Unproject to a ray, then find point at given Z in world space
+  const ndc = new THREE.Vector3(mx, my, 0.5)
+  ndc.unproject(camera)
+  const dir = ndc.sub(camera.position).normalize()
+  // Find t such that camera.position.z + t*dir.z = z
+  const t = (z - camera.position.z) / dir.z
+  return new THREE.Vector3(
+    camera.position.x + t * dir.x,
+    camera.position.y + t * dir.y,
+    z,
+  )
+}
+
+function buildTubeMesh(points) {
+  if (points.length < 2) return null
+  const curve = new THREE.CatmullRomCurve3(points)
+  const segments = Math.max(points.length * 4, 12)
+  const geom = new THREE.TubeGeometry(curve, segments, WORM_RADIUS, WORM_SEGMENTS, false)
+  const mat = blobMaterial.clone()
+  return new THREE.Mesh(geom, mat)
+}
+
+function finaliseWorm() {
+  if (drawPoints.length < 2) {
+    // Not enough points — just clean up preview
+    if (previewMesh) {
+      scene.remove(previewMesh)
+      previewMesh.geometry.dispose()
+      previewMesh = null
+    }
+    return
+  }
+
+  // Remove preview
+  if (previewMesh) {
+    scene.remove(previewMesh)
+    previewMesh.geometry.dispose()
+    previewMesh = null
+  }
+
+  // Build final mesh
+  const mesh = buildTubeMesh(drawPoints)
+  if (!mesh) return
+
+  // Wrap in group for physics
+  const wrapper = new THREE.Group()
+  wrapper.add(mesh)
+
+  // Centre the worm inside the wrapper
+  const bbox = new THREE.Box3().setFromObject(mesh)
+  const center = new THREE.Vector3()
+  bbox.getCenter(center)
+  mesh.position.sub(center)
+  wrapper.position.copy(center)
+
+  assignPhysics(wrapper, WORM_RADIUS * drawPoints.length * 0.3)
+  container.add(wrapper)
+  objects.push(wrapper)
+  drawnWorms.push(wrapper)
+
+  // Enforce max 3 worms — remove oldest
+  if (drawnWorms.length > MAX_WORMS) {
+    const oldest = drawnWorms.shift()
+    container.remove(oldest)
+    const idx = objects.indexOf(oldest)
+    if (idx !== -1) objects.splice(idx, 1)
+    oldest.traverse((child) => {
+      if (child.geometry) child.geometry.dispose()
+    })
+  }
+
+  drawPoints = []
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return
+  isDrawing = true
+  drawPoints = []
+  // Start Z close to camera — world Z around 8 (in front of scene)
+  currentDrawZ = 8
+  const mx = (e.clientX / window.innerWidth) * 2 - 1
+  const my = -(e.clientY / window.innerHeight) * 2 + 1
+  const pt = mouseToWorld(mx, my, currentDrawZ)
+  drawPoints.push(pt)
+})
+
+canvas.addEventListener('mouseup', () => {
+  if (!isDrawing) return
+  isDrawing = false
+  finaliseWorm()
+})
+
+canvas.addEventListener('mouseleave', () => {
+  if (!isDrawing) return
+  isDrawing = false
+  finaliseWorm()
+})
+
+// Touch support
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault()
+  isDrawing = true
+  drawPoints = []
+  currentDrawZ = 8
+  const t = e.touches[0]
+  const mx = (t.clientX / window.innerWidth) * 2 - 1
+  const my = -(t.clientY / window.innerHeight) * 2 + 1
+  drawPoints.push(mouseToWorld(mx, my, currentDrawZ))
+}, { passive: false })
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault()
+  if (!isDrawing) return
+  isDrawing = false
+  finaliseWorm()
+}, { passive: false })
 
 // ─── RAYCASTER HELPER ────────────────────────────────────────────────────────
 function findRootObject(mesh) {
@@ -368,10 +456,8 @@ function physicsStep() {
       if (dist < minDist && dist > 0.001) {
         const normal  = diff.clone().divideScalar(dist)
         const overlap = minDist - dist
-
         a.position.addScaledVector(normal, -overlap * 0.5)
         b.position.addScaledVector(normal,  overlap * 0.5)
-
         const relVel = new THREE.Vector3().subVectors(a.userData.vel, b.userData.vel)
         const dot = relVel.dot(normal)
         if (dot > 0) {
@@ -411,16 +497,21 @@ window.addEventListener('resize', () => {
   updateBoundaries()
 })
 
-// ─── MOUSE INTERACTION ───────────────────────────────────────────────────────
+// ─── MOUSE (repulsion + click impulse) ───────────────────────────────────────
 const mouse = new THREE.Vector2(9999, 9999)
 const raycaster = new THREE.Raycaster()
 
 window.addEventListener('mousemove', (e) => {
   mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+  drawMouse.x = mouse.x
+  drawMouse.y = mouse.y
 })
 
 window.addEventListener('click', (e) => {
+  // Don't fire physics click while drawing
+  if (isDrawing) return
+
   const clickMouse = new THREE.Vector2(
     (e.clientX / window.innerWidth) * 2 - 1,
     -(e.clientY / window.innerHeight) * 2 + 1,
@@ -431,12 +522,10 @@ window.addEventListener('click', (e) => {
   if (hits.length > 0) {
     const hit = hits[0]
     const obj = findRootObject(hit.object) || hit.object
-
     const hitNormal = hit.face
       ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
       : new THREE.Vector3(0, 1, 0)
     const rayDir = raycaster.ray.direction.clone()
-
     const impulse = rayDir.clone().multiplyScalar(1.2).add(hitNormal.multiplyScalar(0.5))
     const localImpulse = impulse.clone().transformDirection(container.matrixWorld.clone().invert())
     obj.userData.vel.add(localImpulse)
@@ -445,7 +534,6 @@ window.addEventListener('click', (e) => {
       (Math.random() - 0.5) * 0.25,
       (Math.random() - 0.5) * 0.25,
     ))
-
     for (const other of objects) {
       if (other === obj) continue
       const diff = new THREE.Vector3().subVectors(other.position, obj.position)
@@ -490,8 +578,39 @@ function animate() {
 
   const t = clock.getElapsedTime()
 
-  // Update blob shader time
+  // Update shader time on all iridescent materials
   blobMaterial.uniforms.uTime.value = t
+  objects.forEach(obj => {
+    obj.traverse(child => {
+      if (child.isMesh && child.material && child.material.uniforms && child.material.uniforms.uTime) {
+        child.material.uniforms.uTime.value = t
+      }
+    })
+  })
+
+  // ── WORM DRAWING UPDATE ──────────────────────────────────────────────────
+  if (isDrawing) {
+    // Advance Z away from camera each frame
+    currentDrawZ -= WORM_Z_SPEED
+
+    const pt = mouseToWorld(drawMouse.x, drawMouse.y, currentDrawZ)
+
+    // Only add point if moved enough
+    const last = drawPoints[drawPoints.length - 1]
+    if (!last || pt.distanceTo(last) > MIN_POINT_DIST) {
+      drawPoints.push(pt)
+    }
+
+    // Rebuild live preview mesh if we have enough points
+    if (drawPoints.length >= 2) {
+      if (previewMesh) {
+        scene.remove(previewMesh)
+        previewMesh.geometry.dispose()
+      }
+      previewMesh = buildTubeMesh(drawPoints)
+      if (previewMesh) scene.add(previewMesh)
+    }
+  }
 
   scrollY += (targetScrollY - scrollY) * 0.06
   const scrollProgress = scrollY / MAX_SCROLL
@@ -525,7 +644,6 @@ function animate() {
     const repulseWorld = new THREE.Vector3()
     raycaster.ray.at(22, repulseWorld)
     const repulseLocal = container.worldToLocal(repulseWorld.clone())
-
     for (const obj of objects) {
       const diff = new THREE.Vector3().subVectors(obj.position, repulseLocal)
       const dist = diff.length()
