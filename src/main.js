@@ -136,6 +136,86 @@ const darkRod = new THREE.MeshStandardMaterial({
   color: 0x111111, metalness: 0.9, roughness: 0.1, envMapIntensity: 1.2,
 })
 
+// ─── TILT / GRAVITY ──────────────────────────────────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+let tiltX = 0  // gravity nudge X per frame
+let tiltY = 0  // gravity nudge Y per frame
+let tiltEnabled = false
+
+// Smooth tilt values to avoid jitter
+let rawTiltX = 0
+let rawTiltY = 0
+
+function applyDeviceMotion(e) {
+  // acceleration includes gravity — gives natural tilt feel
+  const acc = e.accelerationIncludingGravity
+  if (!acc) return
+  // Smooth with lerp
+  rawTiltX += ((acc.x || 0) - rawTiltX) * 0.15
+  rawTiltY += ((acc.y || 0) - rawTiltY) * 0.15
+  // Scale down to gentle nudge
+  tiltX =  rawTiltX * 0.00015
+  tiltY = -rawTiltY * 0.00015
+}
+
+function enableTilt() {
+  if (tiltEnabled) return
+  // iOS 13+ requires explicit permission
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission()
+      .then(state => {
+        if (state === 'granted') {
+          window.addEventListener('devicemotion', applyDeviceMotion)
+          tiltEnabled = true
+          hideTiltHint()
+        }
+      })
+      .catch(console.error)
+  } else {
+    // Android / older iOS — no permission needed
+    window.addEventListener('devicemotion', applyDeviceMotion)
+    tiltEnabled = true
+    hideTiltHint()
+  }
+}
+
+// ─── TILT HINT UI ────────────────────────────────────────────────────────────
+function createTiltHint() {
+  if (!isMobile) return
+  const hint = document.createElement('div')
+  hint.id = 'tilt-hint'
+  hint.textContent = 'Tap to enable tilt'
+  hint.style.cssText = `
+    position: fixed;
+    bottom: 4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    color: rgba(0,0,0,0.35);
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    pointer-events: none;
+    animation: fade-hint 3s ease-in-out infinite;
+  `
+  document.body.appendChild(hint)
+  // Trigger on first touch anywhere
+  document.addEventListener('touchstart', () => enableTilt(), { once: true })
+}
+
+function hideTiltHint() {
+  const hint = document.getElementById('tilt-hint')
+  if (hint) {
+    hint.style.transition = 'opacity 0.6s'
+    hint.style.opacity = '0'
+    setTimeout(() => hint.remove(), 700)
+  }
+}
+
+createTiltHint()
+
 // ─── PHYSICS HELPERS ─────────────────────────────────────────────────────────
 const DAMPING = 0.998
 let BOUNDARY_X = 13
@@ -145,7 +225,7 @@ function updateBoundaries() {
   const camZ = 22
   const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camZ
   const halfW = halfH * camera.aspect
-  BOUNDARY_X = halfW * 0.75  // tighter — keep objects within screen edges
+  BOUNDARY_X = halfW * 0.75
   BOUNDARY_Y = halfH * 0.75
 }
 updateBoundaries()
@@ -182,7 +262,7 @@ const container = new THREE.Group()
 scene.add(container)
 const objects = []
 
-// ─── BACKGROUND PRIMITIVES (disabled — set to 0) ─────────────────────────────
+// ─── BACKGROUND PRIMITIVES (disabled) ────────────────────────────────────────
 const bgGeometries = [
   () => new THREE.SphereGeometry(1.8 + Math.random() * 1.5, 32, 32),
   () => new THREE.BoxGeometry(2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8),
@@ -381,7 +461,6 @@ function finaliseWorm() {
 }
 
 // ─── MOUSE EVENTS (desktop) ──────────────────────────────────────────────────
-// Mouse only tracks position and draws worms — no object interaction
 window.addEventListener('mousemove', (e) => {
   const mx = (e.clientX / window.innerWidth)  * 2 - 1
   const my = -(e.clientY / window.innerHeight) * 2 + 1
@@ -408,7 +487,7 @@ canvas.addEventListener('mouseleave', () => {
 })
 
 // ─── TOUCH EVENTS (mobile) ───────────────────────────────────────────────────
-// Touch only draws worms — no object pushing, no scene rotation
+// Touch only draws worms — tilt handles object movement
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault()
   const t = e.touches[0]
@@ -433,7 +512,7 @@ canvas.addEventListener('touchend', (e) => {
   finaliseWorm()
 }, { passive: false })
 
-// ─── SCROLL (desktop wheel only — affects objects) ───────────────────────────
+// ─── SCROLL (desktop wheel only) ─────────────────────────────────────────────
 let scrollY = 0
 let targetScrollY = 0
 const MAX_SCROLL = 2000
@@ -455,6 +534,12 @@ function physicsStep() {
   for (const obj of objects) {
     const v  = obj.userData.vel
     const av = obj.userData.angVel
+
+    // Apply tilt gravity on mobile
+    if (isMobile && tiltEnabled) {
+      v.x += tiltX
+      v.y += tiltY
+    }
 
     obj.position.addScaledVector(v, 1)
     obj.rotation.x += av.x
@@ -542,33 +627,35 @@ function animate() {
     }
   }
 
-  // ── SCROLL ────────────────────────────────────────────────────────────────
-  scrollY += (targetScrollY - scrollY) * 0.06
-  const scrollProgress = scrollY / MAX_SCROLL
+  // ── SCROLL (desktop only) ─────────────────────────────────────────────────
+  if (!isMobile) {
+    scrollY += (targetScrollY - scrollY) * 0.06
+    const scrollProgress = scrollY / MAX_SCROLL
 
-  const camX = Math.sin(scrollProgress * Math.PI * 2.5) * 10
-  const camY = -scrollProgress * 8 + Math.cos(scrollProgress * Math.PI) * 4
-  const camZ = 22 + scrollProgress * 10
-  camera.position.x += (camX - camera.position.x) * 0.05
-  camera.position.y += (camY - camera.position.y) * 0.05
-  camera.position.z += (camZ - camera.position.z) * 0.05
-  camera.lookAt(0, camY * 0.3, 0)
+    const camX = Math.sin(scrollProgress * Math.PI * 2.5) * 10
+    const camY = -scrollProgress * 8 + Math.cos(scrollProgress * Math.PI) * 4
+    const camZ = 22 + scrollProgress * 10
+    camera.position.x += (camX - camera.position.x) * 0.05
+    camera.position.y += (camY - camera.position.y) * 0.05
+    camera.position.z += (camZ - camera.position.z) * 0.05
+    camera.lookAt(0, camY * 0.3, 0)
 
-  const scrollDelta = targetScrollY - scrollY
-  container.rotation.y += scrollDelta * 0.0008
-  container.rotation.z += scrollDelta * 0.0003
+    const scrollDelta = targetScrollY - scrollY
+    container.rotation.y += scrollDelta * 0.0008
+    container.rotation.z += scrollDelta * 0.0003
 
-  if (Math.abs(scrollDelta) > 1) {
-    for (const obj of objects) {
-      obj.userData.vel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
-      obj.userData.vel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
-      obj.userData.vel.z += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0004
-      obj.userData.angVel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
-      obj.userData.angVel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
+    if (Math.abs(scrollDelta) > 1) {
+      for (const obj of objects) {
+        obj.userData.vel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
+        obj.userData.vel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
+        obj.userData.vel.z += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0004
+        obj.userData.angVel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
+        obj.userData.angVel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
+      }
     }
-  }
 
-  container.rotation.x += 0.0036
+    container.rotation.x += 0.0036
+  }
 
   physicsStep()
   renderer.render(scene, camera)
