@@ -145,8 +145,8 @@ function updateBoundaries() {
   const camZ = 22
   const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camZ
   const halfW = halfH * camera.aspect
-  BOUNDARY_X = halfW * 0.9
-  BOUNDARY_Y = halfH * 0.9
+  BOUNDARY_X = halfW * 0.75  // tighter — keep objects within screen edges
+  BOUNDARY_Y = halfH * 0.75
 }
 updateBoundaries()
 
@@ -270,7 +270,7 @@ fetch('/models/models.json')
   .catch((err) => console.warn('Could not load models.json', err))
 
 // ─── WORM DRAWING ────────────────────────────────────────────────────────────
-const MAX_WORMS = 3
+const MAX_WORMS = 6
 const WORM_RADIUS = 0.4
 const WORM_SEGMENTS = 8
 const WORM_Z_SPEED = 0.006
@@ -335,7 +335,7 @@ function finaliseWorm() {
   const mesh = buildTubeMesh(drawPoints, wormHueOffset)
   if (!mesh) return
 
-  wormHueOffset = (wormHueOffset + 0.12) % 1.0
+  wormHueOffset = (wormHueOffset + 0.25) % 1.0
 
   const wrapper = new THREE.Group()
   wrapper.add(mesh)
