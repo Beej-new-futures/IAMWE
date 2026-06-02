@@ -78,11 +78,11 @@ function makeGlassMaterial(color) {
   })
 }
 
-// ─── IRIDESCENT SHADER (shared by blob GLB + drawn worms) ───────────────────
+// ─── IRIDESCENT SHADER ───────────────────────────────────────────────────────
 const blobMaterial = new THREE.ShaderMaterial({
   uniforms: {
-    uTime:       { value: 0 },
-    uHueOffset:  { value: 0 },  // cycles per worm
+    uTime:      { value: 0 },
+    uHueOffset: { value: 0 },
   },
   vertexShader: `
     varying vec3 vNormal;
@@ -182,7 +182,7 @@ const container = new THREE.Group()
 scene.add(container)
 const objects = []
 
-// ─── BACKGROUND PRIMITIVES ───────────────────────────────────────────────────
+// ─── BACKGROUND PRIMITIVES (disabled — set to 0) ─────────────────────────────
 const bgGeometries = [
   () => new THREE.SphereGeometry(1.8 + Math.random() * 1.5, 32, 32),
   () => new THREE.BoxGeometry(2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8),
@@ -193,7 +193,6 @@ const bgGeometries = [
   () => new THREE.CylinderGeometry(0.9, 0.9, 3.6 + Math.random() * 1.5, 32),
   () => new THREE.TetrahedronGeometry(2.1 + Math.random() * 1.2),
 ]
-
 for (let i = 0; i < 0; i++) {
   const geom = bgGeometries[i % bgGeometries.length]()
   let mat
@@ -247,19 +246,16 @@ function loadModel(path) {
         child.material.needsUpdate = true
       }
     })
-
     const bboxRaw = new THREE.Box3().setFromObject(model)
     const sizeRaw = new THREE.Vector3()
     bboxRaw.getSize(sizeRaw)
     const maxDim = Math.max(sizeRaw.x, sizeRaw.y, sizeRaw.z)
     if (maxDim > 0) model.scale.setScalar(MODEL_TARGET_SIZE / maxDim)
-
     const wrapper = new THREE.Group()
     const bboxScaled = new THREE.Box3().setFromObject(model)
     const center = new THREE.Vector3()
     bboxScaled.getCenter(center)
     model.position.sub(center)
-
     wrapper.add(model)
     randomPosition(wrapper)
     assignPhysics(wrapper, MODEL_TARGET_SIZE * 0.55)
@@ -277,25 +273,21 @@ fetch('/models/models.json')
 const MAX_WORMS = 3
 const WORM_RADIUS = 0.4
 const WORM_SEGMENTS = 8
-const WORM_Z_SPEED = 0.006  // slow push — allows long worms
+const WORM_Z_SPEED = 0.006
 const MIN_POINT_DIST = 0.15
-let wormHueOffset = 0       // cycles per worm, shifts colour each draw
+let wormHueOffset = 0
 
-const drawnWorms = []       // finished worms in scene
+const drawnWorms = []
 let isDrawing = false
-let drawPoints = []         // current in-progress worm points
-let currentDrawZ = 0        // current Z depth while drawing
-let previewMesh = null      // live preview mesh while drawing
-const raycasterDraw = new THREE.Raycaster()
+let drawPoints = []
+let currentDrawZ = 0
+let previewMesh = null
 const drawMouse = new THREE.Vector2()
 
-// Convert mouse position to 3D world point at given Z depth
 function mouseToWorld(mx, my, z) {
-  // Unproject to a ray, then find point at given Z in world space
   const ndc = new THREE.Vector3(mx, my, 0.5)
   ndc.unproject(camera)
   const dir = ndc.sub(camera.position).normalize()
-  // Find t such that camera.position.z + t*dir.z = z
   const t = (z - camera.position.z) / dir.z
   return new THREE.Vector3(
     camera.position.x + t * dir.x,
@@ -314,9 +306,20 @@ function buildTubeMesh(points, hueOffset = 0) {
   return new THREE.Mesh(geom, mat)
 }
 
+function startDraw(mx, my) {
+  isDrawing = true
+  drawPoints = []
+  currentDrawZ = 14
+  drawMouse.set(mx, my)
+  drawPoints.push(mouseToWorld(mx, my, currentDrawZ))
+}
+
+function updateDraw(mx, my) {
+  drawMouse.set(mx, my)
+}
+
 function finaliseWorm() {
   if (drawPoints.length < 2) {
-    // Not enough points — just clean up preview
     if (previewMesh) {
       scene.remove(previewMesh)
       previewMesh.geometry.dispose()
@@ -324,45 +327,36 @@ function finaliseWorm() {
     }
     return
   }
-
-  // Remove preview
   if (previewMesh) {
     scene.remove(previewMesh)
     previewMesh.geometry.dispose()
     previewMesh = null
   }
-
-  // Build final mesh with current hue
   const mesh = buildTubeMesh(drawPoints, wormHueOffset)
   if (!mesh) return
 
-  // Advance hue for next worm — shift by ~0.12 (roughly 43 degrees)
   wormHueOffset = (wormHueOffset + 0.12) % 1.0
 
-  // Wrap in group for physics
   const wrapper = new THREE.Group()
   wrapper.add(mesh)
 
-  // Centre the worm inside the wrapper — keep world position intact
   const bbox = new THREE.Box3().setFromObject(mesh)
   const center = new THREE.Vector3()
   bbox.getCenter(center)
   mesh.position.sub(center)
   wrapper.position.copy(center)
 
-  // Gentle release velocity — slow drift away from where cursor last was
-  // Direction: away from last mouse point in XY, slowly forward in Z
   const lastPt = drawPoints[drawPoints.length - 1]
   const firstPt = drawPoints[0]
   const driftDir = new THREE.Vector3()
     .subVectors(lastPt, firstPt)
     .normalize()
-    .multiplyScalar(0.012) // very gentle
+    .multiplyScalar(0.012)
 
   wrapper.userData.vel = new THREE.Vector3(
     driftDir.x + (Math.random() - 0.5) * 0.004,
     driftDir.y + (Math.random() - 0.5) * 0.004,
-    -0.008, // slowly drift away from camera
+    -0.008,
   )
   wrapper.userData.angVel = new THREE.Vector3(
     (Math.random() - 0.5) * 0.003,
@@ -375,30 +369,30 @@ function finaliseWorm() {
   objects.push(wrapper)
   drawnWorms.push(wrapper)
 
-  // Enforce max 3 worms — remove oldest
   if (drawnWorms.length > MAX_WORMS) {
     const oldest = drawnWorms.shift()
     container.remove(oldest)
     const idx = objects.indexOf(oldest)
     if (idx !== -1) objects.splice(idx, 1)
-    oldest.traverse((child) => {
-      if (child.geometry) child.geometry.dispose()
-    })
+    oldest.traverse((child) => { if (child.geometry) child.geometry.dispose() })
   }
 
   drawPoints = []
 }
 
+// ─── MOUSE EVENTS (desktop) ──────────────────────────────────────────────────
+// Mouse only tracks position and draws worms — no object interaction
+window.addEventListener('mousemove', (e) => {
+  const mx = (e.clientX / window.innerWidth)  * 2 - 1
+  const my = -(e.clientY / window.innerHeight) * 2 + 1
+  updateDraw(mx, my)
+})
+
 canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
-  isDrawing = true
-  drawPoints = []
-  // Start close to camera — plenty of Z room to draw into the scene
-  currentDrawZ = 14
-  const mx = (e.clientX / window.innerWidth) * 2 - 1
+  const mx = (e.clientX / window.innerWidth)  * 2 - 1
   const my = -(e.clientY / window.innerHeight) * 2 + 1
-  const pt = mouseToWorld(mx, my, currentDrawZ)
-  drawPoints.push(pt)
+  startDraw(mx, my)
 })
 
 canvas.addEventListener('mouseup', () => {
@@ -413,16 +407,23 @@ canvas.addEventListener('mouseleave', () => {
   finaliseWorm()
 })
 
-// Touch support
+// ─── TOUCH EVENTS (mobile) ───────────────────────────────────────────────────
+// Touch only draws worms — no object pushing, no scene rotation
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault()
-  isDrawing = true
-  drawPoints = []
-  currentDrawZ = 14
   const t = e.touches[0]
-  const mx = (t.clientX / window.innerWidth) * 2 - 1
+  const mx = (t.clientX / window.innerWidth)  * 2 - 1
   const my = -(t.clientY / window.innerHeight) * 2 + 1
-  drawPoints.push(mouseToWorld(mx, my, currentDrawZ))
+  startDraw(mx, my)
+}, { passive: false })
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault()
+  if (!isDrawing) return
+  const t = e.touches[0]
+  const mx = (t.clientX / window.innerWidth)  * 2 - 1
+  const my = -(t.clientY / window.innerHeight) * 2 + 1
+  updateDraw(mx, my)
 }, { passive: false })
 
 canvas.addEventListener('touchend', (e) => {
@@ -432,18 +433,22 @@ canvas.addEventListener('touchend', (e) => {
   finaliseWorm()
 }, { passive: false })
 
-// ─── RAYCASTER HELPER ────────────────────────────────────────────────────────
-function findRootObject(mesh) {
-  for (const obj of objects) {
-    if (obj === mesh) return obj
-    let p = mesh.parent
-    while (p && p !== container) {
-      if (p === obj) return obj
-      p = p.parent
-    }
-  }
-  return null
-}
+// ─── SCROLL (desktop wheel only — affects objects) ───────────────────────────
+let scrollY = 0
+let targetScrollY = 0
+const MAX_SCROLL = 2000
+
+window.addEventListener('wheel', (e) => {
+  targetScrollY = Math.max(0, Math.min(MAX_SCROLL, targetScrollY + e.deltaY))
+}, { passive: true })
+
+// ─── RESIZE ──────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  updateBoundaries()
+})
 
 // ─── PHYSICS ─────────────────────────────────────────────────────────────────
 function physicsStep() {
@@ -482,7 +487,6 @@ function physicsStep() {
       const diff = new THREE.Vector3().subVectors(b.position, a.position)
       const dist = diff.length()
       const minDist = a.userData.radius + b.userData.radius
-
       if (dist < minDist && dist > 0.001) {
         const normal  = diff.clone().divideScalar(dist)
         const overlap = minDist - dist
@@ -502,109 +506,11 @@ function physicsStep() {
   }
 }
 
-// ─── SCROLL ──────────────────────────────────────────────────────────────────
-let scrollY = 0
-let targetScrollY = 0
-const MAX_SCROLL = 2000
-
-window.addEventListener('wheel', (e) => {
-  targetScrollY = Math.max(0, Math.min(MAX_SCROLL, targetScrollY + e.deltaY))
-}, { passive: true })
-
-let touchStartY = 0
-window.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY }, { passive: true })
-window.addEventListener('touchmove', (e) => {
-  const delta = touchStartY - e.touches[0].clientY
-  touchStartY = e.touches[0].clientY
-  targetScrollY = Math.max(0, Math.min(MAX_SCROLL, targetScrollY + delta * 1.5))
-}, { passive: true })
-
-// ─── RESIZE ──────────────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-  updateBoundaries()
-})
-
-// ─── MOUSE (repulsion + click impulse) ───────────────────────────────────────
-const mouse = new THREE.Vector2(9999, 9999)
-const raycaster = new THREE.Raycaster()
-
-window.addEventListener('mousemove', (e) => {
-  mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
-  drawMouse.x = mouse.x
-  drawMouse.y = mouse.y
-})
-
-window.addEventListener('click', (e) => {
-  // Don't fire physics click while drawing
-  if (isDrawing) return
-
-  const clickMouse = new THREE.Vector2(
-    (e.clientX / window.innerWidth) * 2 - 1,
-    -(e.clientY / window.innerHeight) * 2 + 1,
-  )
-  raycaster.setFromCamera(clickMouse, camera)
-  const hits = raycaster.intersectObjects(objects, true)
-
-  if (hits.length > 0) {
-    const hit = hits[0]
-    const obj = findRootObject(hit.object) || hit.object
-    const hitNormal = hit.face
-      ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
-      : new THREE.Vector3(0, 1, 0)
-    const rayDir = raycaster.ray.direction.clone()
-    const impulse = rayDir.clone().multiplyScalar(1.2).add(hitNormal.multiplyScalar(0.5))
-    const localImpulse = impulse.clone().transformDirection(container.matrixWorld.clone().invert())
-    obj.userData.vel.add(localImpulse)
-    obj.userData.angVel.add(new THREE.Vector3(
-      (Math.random() - 0.5) * 0.25,
-      (Math.random() - 0.5) * 0.25,
-      (Math.random() - 0.5) * 0.25,
-    ))
-    for (const other of objects) {
-      if (other === obj) continue
-      const diff = new THREE.Vector3().subVectors(other.position, obj.position)
-      const dist = diff.length()
-      if (dist < 9) {
-        const splash = diff.normalize().multiplyScalar((9 - dist) / 9 * 0.5)
-        other.userData.vel.add(splash)
-        other.userData.angVel.add(new THREE.Vector3(
-          (Math.random() - 0.5) * 0.1,
-          (Math.random() - 0.5) * 0.1,
-          (Math.random() - 0.5) * 0.1,
-        ))
-      }
-    }
-  } else {
-    const clickPoint = new THREE.Vector3()
-    raycaster.ray.at(20, clickPoint)
-    const localClick = container.worldToLocal(clickPoint.clone())
-    for (const obj of objects) {
-      const diff = new THREE.Vector3().subVectors(obj.position, localClick)
-      const dist = diff.length()
-      if (dist < 16) {
-        const force = (16 - dist) / 16 * 0.45
-        obj.userData.vel.addScaledVector(diff.normalize(), force)
-        obj.userData.angVel.add(new THREE.Vector3(
-          (Math.random() - 0.5) * 0.12,
-          (Math.random() - 0.5) * 0.12,
-          (Math.random() - 0.5) * 0.12,
-        ))
-      }
-    }
-  }
-})
-
 // ─── ANIMATION LOOP ──────────────────────────────────────────────────────────
 const clock = new THREE.Clock()
-let frame = 0
 
 function animate() {
   requestAnimationFrame(animate)
-  frame++
 
   const t = clock.getElapsedTime()
 
@@ -618,20 +524,14 @@ function animate() {
     })
   })
 
-  // ── WORM DRAWING UPDATE ──────────────────────────────────────────────────
+  // ── WORM DRAWING ──────────────────────────────────────────────────────────
   if (isDrawing) {
-    // Advance Z away from camera each frame
     currentDrawZ -= WORM_Z_SPEED
-
     const pt = mouseToWorld(drawMouse.x, drawMouse.y, currentDrawZ)
-
-    // Only add point if moved enough
     const last = drawPoints[drawPoints.length - 1]
     if (!last || pt.distanceTo(last) > MIN_POINT_DIST) {
       drawPoints.push(pt)
     }
-
-    // Rebuild live preview mesh if we have enough points
     if (drawPoints.length >= 2) {
       if (previewMesh) {
         scene.remove(previewMesh)
@@ -642,6 +542,7 @@ function animate() {
     }
   }
 
+  // ── SCROLL ────────────────────────────────────────────────────────────────
   scrollY += (targetScrollY - scrollY) * 0.06
   const scrollProgress = scrollY / MAX_SCROLL
 
@@ -668,21 +569,6 @@ function animate() {
   }
 
   container.rotation.x += 0.0036
-
-  if (frame % 3 === 0) {
-    raycaster.setFromCamera(mouse, camera)
-    const repulseWorld = new THREE.Vector3()
-    raycaster.ray.at(22, repulseWorld)
-    const repulseLocal = container.worldToLocal(repulseWorld.clone())
-    for (const obj of objects) {
-      const diff = new THREE.Vector3().subVectors(obj.position, repulseLocal)
-      const dist = diff.length()
-      if (dist < 4.5) {
-        const force = (4.5 - dist) / 4.5 * 0.02
-        obj.userData.vel.addScaledVector(diff.normalize(), force)
-      }
-    }
-  }
 
   physicsStep()
   renderer.render(scene, camera)
