@@ -80,7 +80,10 @@ function makeGlassMaterial(color) {
 
 // ─── IRIDESCENT SHADER (shared by blob GLB + drawn worms) ───────────────────
 const blobMaterial = new THREE.ShaderMaterial({
-  uniforms: { uTime: { value: 0 } },
+  uniforms: {
+    uTime:       { value: 0 },
+    uHueOffset:  { value: 0 },  // cycles per worm
+  },
   vertexShader: `
     varying vec3 vNormal;
     varying vec3 vViewDir;
@@ -95,6 +98,7 @@ const blobMaterial = new THREE.ShaderMaterial({
   `,
   fragmentShader: `
     uniform float uTime;
+    uniform float uHueOffset;
     varying vec3 vNormal;
     varying vec3 vViewDir;
     varying vec3 vWorldPos;
@@ -107,6 +111,7 @@ const blobMaterial = new THREE.ShaderMaterial({
       float gradientPos = vWorldPos.y*0.08 + vWorldPos.x*0.05 + uTime*0.12;
       float hue = mix(0.88, 0.62, sin(gradientPos)*0.5+0.5);
       hue += fresnel * 0.25;
+      hue += uHueOffset;
       hue = mod(hue, 1.0);
       float lightness = mix(0.45, 0.72, fresnel);
       float saturation = mix(0.7, 1.0, fresnel);
@@ -272,8 +277,9 @@ fetch('/models/models.json')
 const MAX_WORMS = 3
 const WORM_RADIUS = 0.4
 const WORM_SEGMENTS = 8
-const WORM_Z_SPEED = 0.02   // how fast it pushes away from camera per frame
-const MIN_POINT_DIST = 0.15 // min distance before adding a new point
+const WORM_Z_SPEED = 0.006  // slow push — allows long worms
+const MIN_POINT_DIST = 0.15
+let wormHueOffset = 0       // cycles per worm, shifts colour each draw
 
 const drawnWorms = []       // finished worms in scene
 let isDrawing = false
@@ -298,12 +304,13 @@ function mouseToWorld(mx, my, z) {
   )
 }
 
-function buildTubeMesh(points) {
+function buildTubeMesh(points, hueOffset = 0) {
   if (points.length < 2) return null
   const curve = new THREE.CatmullRomCurve3(points)
   const segments = Math.max(points.length * 4, 12)
   const geom = new THREE.TubeGeometry(curve, segments, WORM_RADIUS, WORM_SEGMENTS, false)
   const mat = blobMaterial.clone()
+  mat.uniforms.uHueOffset.value = hueOffset
   return new THREE.Mesh(geom, mat)
 }
 
@@ -325,9 +332,12 @@ function finaliseWorm() {
     previewMesh = null
   }
 
-  // Build final mesh
-  const mesh = buildTubeMesh(drawPoints)
+  // Build final mesh with current hue
+  const mesh = buildTubeMesh(drawPoints, wormHueOffset)
   if (!mesh) return
+
+  // Advance hue for next worm — shift by ~0.12 (roughly 43 degrees)
+  wormHueOffset = (wormHueOffset + 0.12) % 1.0
 
   // Wrap in group for physics
   const wrapper = new THREE.Group()
@@ -383,8 +393,8 @@ canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
   isDrawing = true
   drawPoints = []
-  // Start Z close to camera — world Z around 8 (in front of scene)
-  currentDrawZ = 8
+  // Start close to camera — plenty of Z room to draw into the scene
+  currentDrawZ = 14
   const mx = (e.clientX / window.innerWidth) * 2 - 1
   const my = -(e.clientY / window.innerHeight) * 2 + 1
   const pt = mouseToWorld(mx, my, currentDrawZ)
@@ -408,7 +418,7 @@ canvas.addEventListener('touchstart', (e) => {
   e.preventDefault()
   isDrawing = true
   drawPoints = []
-  currentDrawZ = 8
+  currentDrawZ = 14
   const t = e.touches[0]
   const mx = (t.clientX / window.innerWidth) * 2 - 1
   const my = -(t.clientY / window.innerHeight) * 2 + 1
@@ -627,7 +637,7 @@ function animate() {
         scene.remove(previewMesh)
         previewMesh.geometry.dispose()
       }
-      previewMesh = buildTubeMesh(drawPoints)
+      previewMesh = buildTubeMesh(drawPoints, wormHueOffset)
       if (previewMesh) scene.add(previewMesh)
     }
   }
