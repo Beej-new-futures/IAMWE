@@ -147,33 +147,32 @@ let rawTiltX = 0
 let rawTiltY = 0
 
 function applyDeviceMotion(e) {
-  // acceleration includes gravity — gives natural tilt feel
   const acc = e.accelerationIncludingGravity
   if (!acc) return
-  // Smooth with lerp
   rawTiltX += ((acc.x || 0) - rawTiltX) * 0.15
   rawTiltY += ((acc.y || 0) - rawTiltY) * 0.15
-  // Scale down to gentle nudge
   tiltX =  rawTiltX * 0.00015
   tiltY = -rawTiltY * 0.00015
 }
 
 function enableTilt() {
   if (tiltEnabled) return
-  // iOS 13+ requires explicit permission
+  console.log('enableTilt called')
   if (typeof DeviceMotionEvent !== 'undefined' &&
       typeof DeviceMotionEvent.requestPermission === 'function') {
+    console.log('Requesting iOS permission...')
     DeviceMotionEvent.requestPermission()
       .then(state => {
+        console.log('Permission state:', state)
         if (state === 'granted') {
           window.addEventListener('devicemotion', applyDeviceMotion)
           tiltEnabled = true
           hideTiltHint()
         }
       })
-      .catch(console.error)
+      .catch(err => console.error('Permission error:', err))
   } else {
-    // Android / older iOS — no permission needed
+    console.log('No permission needed — enabling directly')
     window.addEventListener('devicemotion', applyDeviceMotion)
     tiltEnabled = true
     hideTiltHint()
@@ -183,26 +182,41 @@ function enableTilt() {
 // ─── TILT HINT UI ────────────────────────────────────────────────────────────
 function createTiltHint() {
   if (!isMobile) return
-  const hint = document.createElement('div')
-  hint.id = 'tilt-hint'
-  hint.textContent = 'Tap to enable tilt'
-  hint.style.cssText = `
+  const btn = document.createElement('div')
+  btn.id = 'tilt-hint'
+  btn.textContent = 'Tap to enable tilt'
+  btn.style.cssText = `
     position: fixed;
     bottom: 4rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 200;
-    color: rgba(0,0,0,0.35);
+    color: rgba(0,0,0,0.5);
     font-size: 0.6rem;
     letter-spacing: 0.3em;
     text-transform: uppercase;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    pointer-events: none;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 2rem;
+    background: rgba(255,255,255,0.6);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
     animation: fade-hint 3s ease-in-out infinite;
   `
-  document.body.appendChild(hint)
-  // Trigger on first touch anywhere
-  document.addEventListener('touchstart', () => enableTilt(), { once: true })
+  document.body.appendChild(btn)
+
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    enableTilt()
+  }, { passive: false })
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    enableTilt()
+  })
 }
 
 function hideTiltHint() {
