@@ -123,22 +123,53 @@ const darkRod = new THREE.MeshStandardMaterial({
   color: 0x111111, metalness: 0.9, roughness: 0.1, envMapIntensity: 1.2,
 })
 
-// ─── TILT / GRAVITY ──────────────────────────────────────────────────────────
+// ─── TILT / SHAKE ────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
 let tiltX = 0
 let tiltY = 0
 let tiltEnabled = false
 let rawTiltX = 0
 let rawTiltY = 0
+let lastShakeTime = 0
+let lastAcc = { x: 0, y: 0, z: 0 }
+
+function shakeObjects() {
+  for (const obj of objects) {
+    obj.userData.vel.add(new THREE.Vector3(
+      (Math.random() - 0.5) * 0.8,
+      (Math.random() - 0.5) * 0.8,
+      (Math.random() - 0.5) * 0.4,
+    ))
+    obj.userData.angVel.add(new THREE.Vector3(
+      (Math.random() - 0.5) * 0.08,
+      (Math.random() - 0.5) * 0.08,
+      (Math.random() - 0.5) * 0.08,
+    ))
+  }
+}
 
 function applyDeviceMotion(e) {
   const acc = e.accelerationIncludingGravity
   if (!acc) return
-  rawTiltX += ((acc.x || 0) - rawTiltX) * 0.15
-  rawTiltY += ((acc.y || 0) - rawTiltY) * 0.15
-  // Negate both so objects fall in natural direction when phone tilts
-  tiltX = -rawTiltX * 0.0006
-  tiltY =  rawTiltY * 0.0006
+
+  // Fast smoothing for snappy tilt response
+  rawTiltX += ((acc.x || 0) - rawTiltX) * 0.5
+  rawTiltY += ((acc.y || 0) - rawTiltY) * 0.5
+  tiltX = -rawTiltX * 0.0012
+  tiltY =  rawTiltY * 0.0012
+
+  // Shake detection — compare current vs last acceleration
+  const now = Date.now()
+  const delta = Math.abs((acc.x || 0) - lastAcc.x)
+            + Math.abs((acc.y || 0) - lastAcc.y)
+            + Math.abs((acc.z || 0) - lastAcc.z)
+
+  if (delta > 40 && now - lastShakeTime > 800) {
+    lastShakeTime = now
+    shakeObjects()
+  }
+
+  lastAcc = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 }
 }
 
 function enableTilt() {
@@ -352,18 +383,11 @@ function updateDraw(mx, my) {
 
 function finaliseWorm() {
   if (drawPoints.length < 2) {
-    if (previewMesh) {
-      scene.remove(previewMesh)
-      previewMesh.geometry.dispose()
-      previewMesh = null
-    }
+    if (previewMesh) { scene.remove(previewMesh); previewMesh.geometry.dispose(); previewMesh = null }
     return
   }
-  if (previewMesh) {
-    scene.remove(previewMesh)
-    previewMesh.geometry.dispose()
-    previewMesh = null
-  }
+  if (previewMesh) { scene.remove(previewMesh); previewMesh.geometry.dispose(); previewMesh = null }
+
   const mesh = buildTubeMesh(drawPoints, wormHueOffset)
   if (!mesh) return
 
@@ -380,10 +404,7 @@ function finaliseWorm() {
 
   const lastPt  = drawPoints[drawPoints.length - 1]
   const firstPt = drawPoints[0]
-  const driftDir = new THREE.Vector3()
-    .subVectors(lastPt, firstPt)
-    .normalize()
-    .multiplyScalar(0.012)
+  const driftDir = new THREE.Vector3().subVectors(lastPt, firstPt).normalize().multiplyScalar(0.012)
 
   wrapper.userData.vel = new THREE.Vector3(
     driftDir.x + (Math.random() - 0.5) * 0.004,
@@ -414,18 +435,12 @@ function finaliseWorm() {
 
 // ─── MOUSE EVENTS (desktop) ──────────────────────────────────────────────────
 window.addEventListener('mousemove', (e) => {
-  updateDraw(
-    (e.clientX / window.innerWidth)  * 2 - 1,
-    -(e.clientY / window.innerHeight) * 2 + 1,
-  )
+  updateDraw((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
 })
 
 canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
-  startDraw(
-    (e.clientX / window.innerWidth)  * 2 - 1,
-    -(e.clientY / window.innerHeight) * 2 + 1,
-  )
+  startDraw((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
 })
 
 canvas.addEventListener('mouseup',    () => { if (isDrawing) { isDrawing = false; finaliseWorm() } })
@@ -435,20 +450,14 @@ canvas.addEventListener('mouseleave', () => { if (isDrawing) { isDrawing = false
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault()
   const t = e.touches[0]
-  startDraw(
-    (t.clientX / window.innerWidth)  * 2 - 1,
-    -(t.clientY / window.innerHeight) * 2 + 1,
-  )
+  startDraw((t.clientX / window.innerWidth) * 2 - 1, -(t.clientY / window.innerHeight) * 2 + 1)
 }, { passive: false })
 
 canvas.addEventListener('touchmove', (e) => {
   e.preventDefault()
   if (!isDrawing) return
   const t = e.touches[0]
-  updateDraw(
-    (t.clientX / window.innerWidth)  * 2 - 1,
-    -(t.clientY / window.innerHeight) * 2 + 1,
-  )
+  updateDraw((t.clientX / window.innerWidth) * 2 - 1, -(t.clientY / window.innerHeight) * 2 + 1)
 }, { passive: false })
 
 canvas.addEventListener('touchend', (e) => {
@@ -456,7 +465,7 @@ canvas.addEventListener('touchend', (e) => {
   if (isDrawing) { isDrawing = false; finaliseWorm() }
 }, { passive: false })
 
-// ─── SCROLL (desktop wheel — stirs objects) ───────────────────────────────────
+// ─── SCROLL (desktop wheel) ───────────────────────────────────────────────────
 let scrollY = 0
 let targetScrollY = 0
 const MAX_SCROLL = 2000
@@ -543,7 +552,7 @@ function animate() {
 
   const t = clock.getElapsedTime()
 
-  // Update iridescent shader time on all objects
+  // Update iridescent shader time
   blobMaterial.uniforms.uTime.value = t
   objects.forEach(obj => {
     obj.traverse(child => {
@@ -566,35 +575,38 @@ function animate() {
     }
   }
 
-  // ── SCROLL + CAMERA (desktop only) ───────────────────────────────────────
-  if (!isMobile) {
-    scrollY += (targetScrollY - scrollY) * 0.06
-    const scrollProgress = scrollY / MAX_SCROLL
-
-    const camX = Math.sin(scrollProgress * Math.PI * 2.5) * 10
-    const camY = -scrollProgress * 8 + Math.cos(scrollProgress * Math.PI) * 4
-    const camZ = 22 + scrollProgress * 10
-    camera.position.x += (camX - camera.position.x) * 0.05
-    camera.position.y += (camY - camera.position.y) * 0.05
-    camera.position.z += (camZ - camera.position.z) * 0.05
-    camera.lookAt(0, camY * 0.3, 0)
-
-    const scrollDelta = targetScrollY - scrollY
-    container.rotation.y += scrollDelta * 0.0008
-    container.rotation.z += scrollDelta * 0.0003
-
-    if (Math.abs(scrollDelta) > 1) {
-      for (const obj of objects) {
-        obj.userData.vel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
-        obj.userData.vel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
-        obj.userData.vel.z += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0004
-        obj.userData.angVel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
-        obj.userData.angVel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
-      }
-    }
-
-    container.rotation.x += 0.0036
+  // ── SCROLL + CAMERA ───────────────────────────────────────────────────────
+  // Desktop: mouse wheel. Mobile: X axis tilt drives scroll
+  if (isMobile && tiltEnabled) {
+    targetScrollY = Math.max(0, Math.min(MAX_SCROLL, targetScrollY + rawTiltX * 1.5))
   }
+
+  scrollY += (targetScrollY - scrollY) * 0.06
+  const scrollProgress = scrollY / MAX_SCROLL
+
+  const camX = Math.sin(scrollProgress * Math.PI * 2.5) * 10
+  const camY = -scrollProgress * 8 + Math.cos(scrollProgress * Math.PI) * 4
+  const camZ = 22 + scrollProgress * 10
+  camera.position.x += (camX - camera.position.x) * 0.05
+  camera.position.y += (camY - camera.position.y) * 0.05
+  camera.position.z += (camZ - camera.position.z) * 0.05
+  camera.lookAt(0, camY * 0.3, 0)
+
+  const scrollDelta = targetScrollY - scrollY
+  container.rotation.y += scrollDelta * 0.0008
+  container.rotation.z += scrollDelta * 0.0003
+
+  if (Math.abs(scrollDelta) > 1) {
+    for (const obj of objects) {
+      obj.userData.vel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
+      obj.userData.vel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0008
+      obj.userData.vel.z += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0004
+      obj.userData.angVel.x += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
+      obj.userData.angVel.y += (Math.random() - 0.5) * Math.abs(scrollDelta) * 0.0003
+    }
+  }
+
+  container.rotation.x += 0.0036
 
   physicsStep()
   renderer.render(scene, camera)
