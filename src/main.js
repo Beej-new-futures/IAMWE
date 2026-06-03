@@ -65,19 +65,6 @@ studioPoints.forEach(l => {
   scene.add(pl)
 })
 
-// ─── MATERIALS ───────────────────────────────────────────────────────────────
-function makeMetalMaterial(color) {
-  return new THREE.MeshStandardMaterial({
-    color, metalness: 0.95, roughness: 0.05, envMapIntensity: 1.0,
-  })
-}
-
-function makeGlassMaterial(color) {
-  return new THREE.MeshStandardMaterial({
-    color, metalness: 0.1, roughness: 0.0, transparent: true, opacity: 0.55,
-  })
-}
-
 // ─── IRIDESCENT SHADER ───────────────────────────────────────────────────────
 const blobMaterial = new THREE.ShaderMaterial({
   uniforms: {
@@ -125,7 +112,7 @@ const blobMaterial = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
 })
 
-// ─── NEON YELLOW PERSPEX ─────────────────────────────────────────────────────
+// ─── MATERIALS ───────────────────────────────────────────────────────────────
 const neonPerspex = new THREE.MeshStandardMaterial({
   color: 0xffff00, emissive: 0xdddd00, emissiveIntensity: 0.5,
   metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.72,
@@ -138,11 +125,9 @@ const darkRod = new THREE.MeshStandardMaterial({
 
 // ─── TILT / GRAVITY ──────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
-let tiltX = 0  // gravity nudge X per frame
-let tiltY = 0  // gravity nudge Y per frame
+let tiltX = 0
+let tiltY = 0
 let tiltEnabled = false
-
-// Smooth tilt values to avoid jitter
 let rawTiltX = 0
 let rawTiltY = 0
 
@@ -151,28 +136,26 @@ function applyDeviceMotion(e) {
   if (!acc) return
   rawTiltX += ((acc.x || 0) - rawTiltX) * 0.15
   rawTiltY += ((acc.y || 0) - rawTiltY) * 0.15
-  tiltX =  rawTiltX * 0.00015
-  tiltY = -rawTiltY * 0.00015
+  // X: tilt left/right — acc.x is correct direction
+  // Y: negate because acc.y is positive upward on phone, we want tilt down = fall down
+  tiltX =  rawTiltX * 0.0006
+  tiltY = -rawTiltY * 0.0006
 }
 
 function enableTilt() {
   if (tiltEnabled) return
-  console.log('enableTilt called')
   if (typeof DeviceMotionEvent !== 'undefined' &&
       typeof DeviceMotionEvent.requestPermission === 'function') {
-    console.log('Requesting iOS permission...')
     DeviceMotionEvent.requestPermission()
       .then(state => {
-        console.log('Permission state:', state)
         if (state === 'granted') {
           window.addEventListener('devicemotion', applyDeviceMotion)
           tiltEnabled = true
           hideTiltHint()
         }
       })
-      .catch(err => console.error('Permission error:', err))
+      .catch(console.error)
   } else {
-    console.log('No permission needed — enabling directly')
     window.addEventListener('devicemotion', applyDeviceMotion)
     tiltEnabled = true
     hideTiltHint()
@@ -205,18 +188,8 @@ function createTiltHint() {
     animation: fade-hint 3s ease-in-out infinite;
   `
   document.body.appendChild(btn)
-
-  btn.addEventListener('touchend', (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    enableTilt()
-  }, { passive: false })
-
-  btn.addEventListener('click', (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    enableTilt()
-  })
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); enableTilt() }, { passive: false })
+  btn.addEventListener('click',    (e) => { e.preventDefault(); e.stopPropagation(); enableTilt() })
 }
 
 function hideTiltHint() {
@@ -276,40 +249,6 @@ const container = new THREE.Group()
 scene.add(container)
 const objects = []
 
-// ─── BACKGROUND PRIMITIVES (disabled) ────────────────────────────────────────
-const bgGeometries = [
-  () => new THREE.SphereGeometry(1.8 + Math.random() * 1.5, 32, 32),
-  () => new THREE.BoxGeometry(2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8, 2.4 + Math.random() * 1.8),
-  () => new THREE.TorusGeometry(1.5 + Math.random() * 0.9, 0.54 + Math.random() * 0.3, 24, 64),
-  () => new THREE.OctahedronGeometry(2.1 + Math.random() * 1.2),
-  () => new THREE.IcosahedronGeometry(1.8 + Math.random() * 1.2),
-  () => new THREE.ConeGeometry(1.35 + Math.random() * 0.9, 3.0 + Math.random() * 1.5, 6),
-  () => new THREE.CylinderGeometry(0.9, 0.9, 3.6 + Math.random() * 1.5, 32),
-  () => new THREE.TetrahedronGeometry(2.1 + Math.random() * 1.2),
-]
-for (let i = 0; i < 0; i++) {
-  const geom = bgGeometries[i % bgGeometries.length]()
-  let mat
-  const r = Math.random()
-  if (r < 0.6) {
-    mat = new THREE.MeshStandardMaterial({ metalness: 1.0, roughness: 0.05, envMapIntensity: 1.8, color: 0xffffff })
-  } else if (r < 0.8) {
-    const cols = [0x111111, 0x1a1a2e, 0x0a0a0a, 0x1c1c1c]
-    mat = makeMetalMaterial(cols[Math.floor(Math.random() * cols.length)])
-  } else {
-    const cols = [0x8888ff, 0xffaacc, 0x88ffdd, 0xffffff]
-    mat = makeGlassMaterial(cols[Math.floor(Math.random() * cols.length)])
-  }
-  const mesh = new THREE.Mesh(geom, mat)
-  randomPosition(mesh)
-  const bbox = new THREE.Box3().setFromObject(mesh)
-  const size = new THREE.Vector3()
-  bbox.getSize(size)
-  assignPhysics(mesh, size.length() * 0.4)
-  container.add(mesh)
-  objects.push(mesh)
-}
-
 // ─── GLB MODELS ──────────────────────────────────────────────────────────────
 const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
@@ -365,7 +304,7 @@ fetch('/models/models.json')
 
 // ─── WORM DRAWING ────────────────────────────────────────────────────────────
 const MAX_WORMS = 6
-const WORM_RADIUS = 0.4
+const WORM_RADIUS = 0.7
 const WORM_SEGMENTS = 8
 const WORM_Z_SPEED = 0.006
 const MIN_POINT_DIST = 0.15
@@ -403,7 +342,7 @@ function buildTubeMesh(points, hueOffset = 0) {
 function startDraw(mx, my) {
   isDrawing = true
   drawPoints = []
-  currentDrawZ = 14
+  currentDrawZ = 2
   drawMouse.set(mx, my)
   drawPoints.push(mouseToWorld(mx, my, currentDrawZ))
 }
@@ -440,7 +379,7 @@ function finaliseWorm() {
   mesh.position.sub(center)
   wrapper.position.copy(center)
 
-  const lastPt = drawPoints[drawPoints.length - 1]
+  const lastPt  = drawPoints[drawPoints.length - 1]
   const firstPt = drawPoints[0]
   const driftDir = new THREE.Vector3()
     .subVectors(lastPt, firstPt)
@@ -476,57 +415,49 @@ function finaliseWorm() {
 
 // ─── MOUSE EVENTS (desktop) ──────────────────────────────────────────────────
 window.addEventListener('mousemove', (e) => {
-  const mx = (e.clientX / window.innerWidth)  * 2 - 1
-  const my = -(e.clientY / window.innerHeight) * 2 + 1
-  updateDraw(mx, my)
+  updateDraw(
+    (e.clientX / window.innerWidth)  * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1,
+  )
 })
 
 canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
-  const mx = (e.clientX / window.innerWidth)  * 2 - 1
-  const my = -(e.clientY / window.innerHeight) * 2 + 1
-  startDraw(mx, my)
+  startDraw(
+    (e.clientX / window.innerWidth)  * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1,
+  )
 })
 
-canvas.addEventListener('mouseup', () => {
-  if (!isDrawing) return
-  isDrawing = false
-  finaliseWorm()
-})
+canvas.addEventListener('mouseup',    () => { if (isDrawing) { isDrawing = false; finaliseWorm() } })
+canvas.addEventListener('mouseleave', () => { if (isDrawing) { isDrawing = false; finaliseWorm() } })
 
-canvas.addEventListener('mouseleave', () => {
-  if (!isDrawing) return
-  isDrawing = false
-  finaliseWorm()
-})
-
-// ─── TOUCH EVENTS (mobile) ───────────────────────────────────────────────────
-// Touch only draws worms — tilt handles object movement
+// ─── TOUCH EVENTS (mobile — draw only, tilt moves objects) ───────────────────
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault()
   const t = e.touches[0]
-  const mx = (t.clientX / window.innerWidth)  * 2 - 1
-  const my = -(t.clientY / window.innerHeight) * 2 + 1
-  startDraw(mx, my)
+  startDraw(
+    (t.clientX / window.innerWidth)  * 2 - 1,
+    -(t.clientY / window.innerHeight) * 2 + 1,
+  )
 }, { passive: false })
 
 canvas.addEventListener('touchmove', (e) => {
   e.preventDefault()
   if (!isDrawing) return
   const t = e.touches[0]
-  const mx = (t.clientX / window.innerWidth)  * 2 - 1
-  const my = -(t.clientY / window.innerHeight) * 2 + 1
-  updateDraw(mx, my)
+  updateDraw(
+    (t.clientX / window.innerWidth)  * 2 - 1,
+    -(t.clientY / window.innerHeight) * 2 + 1,
+  )
 }, { passive: false })
 
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault()
-  if (!isDrawing) return
-  isDrawing = false
-  finaliseWorm()
+  if (isDrawing) { isDrawing = false; finaliseWorm() }
 }, { passive: false })
 
-// ─── SCROLL (desktop wheel only) ─────────────────────────────────────────────
+// ─── SCROLL (desktop wheel — stirs objects) ───────────────────────────────────
 let scrollY = 0
 let targetScrollY = 0
 const MAX_SCROLL = 2000
@@ -549,7 +480,7 @@ function physicsStep() {
     const v  = obj.userData.vel
     const av = obj.userData.angVel
 
-    // Apply tilt gravity on mobile
+    // Tilt gravity — mobile only
     if (isMobile && tiltEnabled) {
       v.x += tiltX
       v.y += tiltY
@@ -613,11 +544,11 @@ function animate() {
 
   const t = clock.getElapsedTime()
 
-  // Update shader time on all iridescent materials
+  // Update iridescent shader time on all objects
   blobMaterial.uniforms.uTime.value = t
   objects.forEach(obj => {
     obj.traverse(child => {
-      if (child.isMesh && child.material && child.material.uniforms && child.material.uniforms.uTime) {
+      if (child.isMesh && child.material?.uniforms?.uTime) {
         child.material.uniforms.uTime.value = t
       }
     })
@@ -628,20 +559,15 @@ function animate() {
     currentDrawZ -= WORM_Z_SPEED
     const pt = mouseToWorld(drawMouse.x, drawMouse.y, currentDrawZ)
     const last = drawPoints[drawPoints.length - 1]
-    if (!last || pt.distanceTo(last) > MIN_POINT_DIST) {
-      drawPoints.push(pt)
-    }
+    if (!last || pt.distanceTo(last) > MIN_POINT_DIST) drawPoints.push(pt)
     if (drawPoints.length >= 2) {
-      if (previewMesh) {
-        scene.remove(previewMesh)
-        previewMesh.geometry.dispose()
-      }
+      if (previewMesh) { scene.remove(previewMesh); previewMesh.geometry.dispose() }
       previewMesh = buildTubeMesh(drawPoints, wormHueOffset)
       if (previewMesh) scene.add(previewMesh)
     }
   }
 
-  // ── SCROLL (desktop only) ─────────────────────────────────────────────────
+  // ── SCROLL + CAMERA (desktop only) ───────────────────────────────────────
   if (!isMobile) {
     scrollY += (targetScrollY - scrollY) * 0.06
     const scrollProgress = scrollY / MAX_SCROLL
