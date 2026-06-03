@@ -136,10 +136,9 @@ function applyDeviceMotion(e) {
   if (!acc) return
   rawTiltX += ((acc.x || 0) - rawTiltX) * 0.15
   rawTiltY += ((acc.y || 0) - rawTiltY) * 0.15
-  // X: tilt left/right — acc.x is correct direction
-  // Y: negate because acc.y is positive upward on phone, we want tilt down = fall down
-  tiltX =  rawTiltX * 0.0006
-  tiltY = -rawTiltY * 0.0006
+  // Negate both so objects fall in natural direction when phone tilts
+  tiltX = -rawTiltX * 0.0006
+  tiltY =  rawTiltY * 0.0006
 }
 
 function enableTilt() {
