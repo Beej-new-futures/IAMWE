@@ -21,7 +21,7 @@ scene.fog = new THREE.FogExp2(0xffffff, 0.018)
 const pmremGenerator = new THREE.PMREMGenerator(renderer)
 pmremGenerator.compileEquirectangularShader()
 
-new RGBELoader().load('/models/HDRI_STUDIO_vol2_004.hdr', (texture) => {
+new RGBELoader().load('/models/HDRI_STUDIO_vol2_004_1k.hdr', (texture) => {
   const envMap = pmremGenerator.fromEquirectangular(texture).texture
   scene.environment = envMap
   texture.dispose()

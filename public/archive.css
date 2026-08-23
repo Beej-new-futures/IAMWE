@@ -1,0 +1,351 @@
+/* ─── IAMWE / Work archive — scattered plate ──────────────────────────────
+   A single screen of work, laid out as a loose constellation rather than a
+   grid, with the wordmark holding the middle. Every plate sits at its own
+   depth and drifts after the cursor; archive.js does that part. Positions
+   here are percentages so the composition survives any window size, and
+   several plates deliberately run off the edges — the page should feel
+   like a window onto something larger.                                    */
+
+/* Paper, with the grid and the wordmark burning through it in black —
+   see grid.js. */
+:root {
+  --iw-bg: #f6f5f1;
+  --iw-ink: #141414;
+  --iw-ink-soft: rgba(20, 20, 20, 0.55);
+  --iw-ink-faint: rgba(20, 20, 20, 0.35);
+  --iw-rule: rgba(20, 20, 20, 0.12);
+  --iw-accent: #ff6600;
+
+  --iw-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Half the size it was. The mark is drawn on the canvas at exactly
+     this width, so the brush reveals it at whatever size is set here. */
+  --mark-w: clamp(66px, 7.8vw, 120px);
+
+  --iw-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--iw-bg);
+  color: var(--iw-ink);
+  font-family: var(--iw-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* Small archival labels — the whole page is built on these. */
+.mono {
+  font-family: var(--iw-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* ─── The plate ─────────────────────────────────────────────────────────── */
+
+.plate {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  min-height: 620px;
+  /* Deliberately NOT clipped. Plates are placed in vh but sized in vw, so
+     the lower ones hang below the fold — cropping them to the viewport
+     cut pictures in half. They are allowed to run over, and the index
+     below is pushed down by --overhang to meet them. Sideways bleed is
+     still contained, by overflow-x on the body. */
+  overflow: visible;
+}
+
+/* ─── Chrome: corners and centre ────────────────────────────────────────── */
+
+.corner {
+  position: absolute;
+  z-index: 40;
+  display: flex;
+  gap: 1.4rem;
+  color: var(--iw-ink);
+}
+.corner.tl { top: 1.6rem; left: 1.8rem; }
+.corner.tr { top: 1.6rem; right: 1.8rem; }
+.corner.bl { bottom: 1.6rem; left: 1.8rem; flex-direction: column; gap: 0.25rem; }
+.corner.br { bottom: 1.6rem; right: 1.8rem; }
+
+.corner a { transition: color 0.25s ease; }
+.corner a:hover { color: var(--iw-accent); }
+
+.corner.bl .mono { color: var(--iw-ink-faint); display: flex; gap: 0.7rem; }
+.corner.bl .mono::before { content: '—'; }
+
+/* Live local time, top left. Rendered by archive.js. */
+#clock { font-variant-numeric: tabular-nums; }
+
+/* The mark is drawn on the canvas, not in the DOM, because it is
+   revealed by the brush along with everything else — it has to share the
+   same mask. It is composited on a layer the size of the mark itself,
+   not the page, so it costs a few thousand pixels a frame rather than a
+   few million. --mark-w still sets its size. */
+
+.scroll-cue {
+  position: absolute;
+  bottom: 1.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  color: var(--iw-ink-faint);
+  animation: cue 3.2s ease-in-out infinite;
+}
+@keyframes cue {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+
+/* ─── The hidden grid ───────────────────────────────────────────────────── */
+/* Behind every picture and above nothing but the paper. Invisible until
+   the cursor wipes it in — see grid.js. Never takes the pointer. */
+.grid-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ─── Plates ────────────────────────────────────────────────────────────── */
+
+.scatter {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+/* One picture. --x/--y/--w place it; --dx/--dy and --sc are written every
+   frame by archive.js — the first two are the drift, the third is where
+   the plate currently sits in depth. --z is rewritten too, so the
+   stacking order follows the same depth. Nothing transitions: the values
+   already arrive smoothed, and a transition would only lag behind them.
+
+   Scale is a transform, so it changes nothing about layout — the plate
+   grows and shrinks about its own centre while the geometry archive.js
+   cached stays true. That is the whole reason the composition can breathe
+   without anything needing to be re-measured. */
+.tile {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  z-index: var(--z, 10);
+  display: block;
+  transform:
+    translate3d(calc(var(--dx, 0) * 1px), calc(var(--dy, 0) * 1px), 0)
+    scale(var(--sc, 1));
+  /* Cards at the back of the cylinder sit down in contrast a little.
+     Scale and occlusion do most of the depth on their own; this is the
+     last few percent, and it is deliberately slight — a photograph that
+     visibly greys out reads as broken rather than distant. */
+  filter: brightness(var(--fade, 1)) contrast(calc(0.86 + 0.14 * var(--fade, 1)));
+  will-change: transform, filter;
+}
+
+/* A plate can hold a still or a clip; both behave identically. The
+   video carries width/height attributes so the browser reserves the
+   right box before a single byte of it arrives — without them the plate
+   would be zero-height on first paint and everything measured from it
+   (the overhang, the drift geometry) would be measured wrong. */
+.tile img,
+.tile video {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Deliberately unmatted — no frame, no border. The pictures are the
+     only colour on the page and they should sit straight on the paper. */
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.55);
+}
+
+/* A plate that holds a Cloudflare Stream clip rather than a picture.
+   The box is sized by --ar (width / height) so it reserves the right
+   space before the player has loaded anything — the drift geometry and
+   the overhang are both measured off it. The still behind the iframe is
+   Cloudflare's own thumbnail for the same video, so the plate is never
+   blank: it shows the frame while the player boots, and keeps showing it
+   if the player never arrives at all. The iframe takes no pointer
+   events, so clicks fall through to the tile's link the way they do on
+   every other plate. */
+.tile-embed {
+  display: block;      /* it is a <span>, so this is not optional */
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--ar, 1);
+  background: #000 center / cover no-repeat;
+  background-image: var(--poster, none);
+  overflow: hidden;
+}
+.tile-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* A plate holding a set of short clips rather than one. They are stacked
+   and cross-faded by clip-swap.js — see there for why they are stacked
+   rather than swapped by src. The box takes its shape from --ar so it
+   reserves the right space before any clip has decoded, and the poster
+   sits behind the stack so the plate is never empty. */
+.tile-clips {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--ar, 4 / 3);
+  background: #000 center / cover no-repeat;
+  background-image: var(--poster, none);
+  overflow: hidden;
+}
+.tile-clips video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.tile-clips video.is-on { opacity: 1; }
+
+/* Code and title are stamped INSIDE the plate, bottom left, the way a
+   contact sheet is annotated in the margin of the frame itself. They used
+   to sit on the paper below each picture, which reads beautifully on an
+   airy layout — but once the plates draw close enough to overlap, a label
+   on the paper ends up underneath its neighbour, or off the edge of the
+   window for the plates that bleed. Inside the frame it is legible at any
+   density and at any window size. */
+.tile .tag {
+  position: absolute;
+  left: 0.8rem;
+  bottom: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  transition: color 0.3s ease;
+}
+.tile .tag .code { color: rgba(255, 255, 255, 0.6); }
+.tile:hover .tag { color: #fff; }
+.tile:hover .tag .code { color: var(--iw-accent); }
+
+/* ─── Index below the fold ──────────────────────────────────────────────── */
+
+.index {
+  position: relative;
+  z-index: 30;
+  /* Cleared past whatever hangs below the plate. archive.js measures the
+     lowest picture on load and on resize and writes --overhang, including
+     an allowance for how far things drift, so the two never meet however
+     the window is shaped. */
+  margin-top: calc(var(--overhang, 0px) + 6vh);
+  background: var(--iw-bg);
+  padding: clamp(3rem, 7vw, 6rem) 1.8rem clamp(4rem, 8vw, 7rem);
+  border-top: 1px solid var(--iw-rule);
+}
+
+.index-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  max-width: 1180px;
+  margin: 0 auto 1.6rem;
+  color: var(--iw-ink-faint);
+}
+
+.index-list {
+  max-width: 1180px;
+  margin: 0 auto;
+  list-style: none;
+}
+
+.index-list li { border-top: 1px solid var(--iw-rule); }
+.index-list li:last-child { border-bottom: 1px solid var(--iw-rule); }
+
+/* The rows drift as well, at a fraction of the pictures' depth — enough
+   that the list feels part of the same surface, not so much that reading
+   it becomes work. --dx/--dy come from the same engine. */
+.index-list a {
+  transform: translate3d(calc(var(--dx, 0) * 1px), calc(var(--dy, 0) * 1px), 0);
+  will-change: transform;
+  display: grid;
+  grid-template-columns: 5rem 1fr 1fr 6rem;
+  gap: 1.5rem;
+  align-items: baseline;
+  padding: 1.05rem 0.2rem;
+  transition: background-color 0.25s ease, padding-left 0.25s ease;
+}
+.index-list a:hover {
+  background: rgba(20, 20, 20, 0.035);
+  padding-left: 0.9rem;
+}
+.index-list a:hover .n { color: var(--iw-accent); }
+
+.index-list .n { color: var(--iw-ink-faint); }
+.index-list .t {
+  font-family: var(--iw-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.index-list .d { color: var(--iw-ink-soft); }
+.index-list .y { text-align: right; color: var(--iw-ink-faint); }
+
+@media (max-width: 780px) {
+  .index-list a { grid-template-columns: 3.4rem 1fr; }
+  .index-list .d, .index-list .y { display: none; }
+}
+
+/* ─── Narrow screens ────────────────────────────────────────────────────── */
+/* No cursor to follow and no room to scatter, so the plate becomes an
+   ordinary stack. archive.js sees this and stops writing drift entirely. */
+
+@media (max-width: 900px) {
+  .plate {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 6.5rem 1.2rem 3rem;
+  }
+  .wordmark, .line {
+    position: static;
+    transform: none;
+    text-align: center;
+    margin: 0 auto;
+  }
+  .wordmark { margin-bottom: 0.9rem; }
+  .wordmark img { margin: 0 auto; width: min(var(--mark-w), 78vw); }
+  .line { margin-bottom: 3rem; }
+  .scatter {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+  .tile {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    transform: none;
+  }
+  .tile .tag { position: static; margin-top: 0.5rem; justify-content: flex-start; }
+  .scroll-cue { display: none; }
+  .corner.bl, .corner.br { position: static; margin-top: 2.5rem; }
+}

@@ -1,0 +1,322 @@
+/* ─── IAMWE / Work section ──────────────────────────────────────────────── */
+
+:root {
+  --iw-bg: #f6f5f1;
+  --iw-mat: #efeee9;
+  --iw-frame: #141414;
+  --iw-ink: #141414;
+  --iw-ink-soft: rgba(20, 20, 20, 0.55);
+  --iw-rule: rgba(20, 20, 20, 0.12);
+  --iw-accent: #ff6600;
+  --iw-header-h: 64px;
+
+  --col-copy: 250px;
+  --col-index: 230px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--iw-bg);
+  color: var(--iw-ink);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── Top bar ─────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--iw-header-h);
+  padding: 0 clamp(1.25rem, 3vw, 2.5rem);
+  background: var(--iw-bg);
+  border-bottom: 1px solid var(--iw-rule);
+}
+
+.tb-left { display: flex; align-items: center; gap: 1.5rem; }
+
+.tb-link {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: var(--iw-ink-soft);
+  transition: color 0.2s ease;
+}
+.tb-link:hover { color: var(--iw-ink); }
+.tb-link.tb-current { color: var(--iw-ink); font-weight: 600; }
+
+.tb-center {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--iw-ink-soft);
+  text-align: center;
+}
+.tb-center .tb-code { color: var(--iw-accent); font-weight: 600; letter-spacing: 0.04em; }
+.tb-center .tb-title { color: var(--iw-ink); font-weight: 600; }
+
+.tb-right { display: flex; align-items: center; gap: 1rem; }
+.tb-logo-link { display: block; opacity: 0.85; transition: opacity 0.2s ease; }
+.tb-logo-link:hover { opacity: 1; }
+.tb-logo { height: 26px; width: auto; display: block; }
+
+/* ─── Page layout ─────────────────────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr var(--col-index);
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 3vw, 2.5rem) 6rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.content { min-width: 0; }
+
+/* ─── Frames (matted print treatment — used on archive cards) ───────── */
+
+.frame {
+  background: var(--iw-frame);
+  padding: clamp(10px, 1.4vw, 20px);
+  box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.4);
+  display: inline-block;
+  max-width: 100%;
+}
+.frame-inner { background: var(--iw-mat); padding: clamp(6px, 0.9vw, 12px); }
+.frame img { display: block; width: 100%; height: auto; }
+
+/* ─── Project stage: sticky copy + scroll-scaling image stack ───────── */
+
+.stage {
+  display: grid;
+  grid-template-columns: var(--col-copy) 1fr;
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .stage { grid-template-columns: 1fr; }
+}
+
+.stage-copy {
+  position: sticky;
+  top: calc(var(--iw-header-h) + 2rem);
+  /* Pushed aside by work.js in the same frame as the image scale, from
+     the same scroll value — no transition here on purpose, the value is
+     already continuous because scrolling is. --reveal is written by the
+     same file and follows the cursor, so it gets no transition either. */
+  transform: translateX(calc(var(--push, 0) * -1px));
+  opacity: var(--reveal, 1);
+  z-index: 1;
+  will-change: transform, opacity;
+}
+.stage-copy .eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--iw-accent);
+  margin-bottom: 0.6rem;
+}
+.stage-copy h1 {
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+.stage-copy p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--iw-ink-soft);
+}
+@media (max-width: 900px) {
+  .stage-copy { position: static; margin-bottom: 2rem; }
+}
+
+.stage-images {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* The resting gap. work.js keeps the *visual* gap at exactly this
+     value at all times by translating each image to absorb the growth
+     of the ones above it — see the magnetic-push note in that file. */
+  gap: var(--stage-gap, 20px);
+  /* Tail room so the final image can still travel up to the centre of
+     the screen (and reach full size) before the page bottoms out. */
+  padding: 0 0 20vh;
+}
+
+/* Both transform values below are written by work.js every frame from
+   one cached layout measurement plus the current scroll offset:
+     --s  the scroll-linked scale (big at screen centre, small away)
+     --ty the push that keeps the gap to the neighbours constant
+   Nothing here transitions — the values are already continuous because
+   they come straight off scroll position, and a transition would only
+   lag behind them. */
+.stage-img {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+  opacity: 0;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.38);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: opacity 0.6s ease;
+  transform-origin: center;
+  transform: translateY(calc(var(--ty, 0) * 1px)) scale(var(--s, 1));
+  will-change: transform;
+}
+.stage-img.is-visible { opacity: 1; }
+
+/* A clip in the run behaves like any other picture — same scroll-scale,
+   same reveal — but an iframe has no intrinsic size to measure, so the
+   box is given one. Height is pinned to the same 46vh baseline the
+   stills use, so a clip and a photograph of the same proportions come
+   out the same size. Cloudflare's own thumbnail sits behind the iframe,
+   so the slot is never empty while the player boots, and stays legible
+   if the player never arrives at all. */
+.stage-stream {
+  height: 46vh;
+  aspect-ratio: var(--ar, 4 / 5);
+  max-width: 100%;
+  background: #000 center / cover no-repeat;
+  background-image: var(--poster, none);
+}
+/* One clip in the run is allowed to break the 46vh baseline. Some work
+   only reads at size — a wide, detailed frame shown at the same height as
+   a portrait still throws away most of what is in it. The baseline here
+   is the resting height; work.js's scroll-scale still multiplies from it
+   as the clip crosses the centre of the screen, and its own
+   HEIGHT_HEADROOM stops it at 92% of the window, so this fills nearly the
+   whole viewport at its largest without ever running off the top and
+   bottom. */
+.stage-stream.is-big { height: 78vh; }
+
+/* A self-hosted loop in the run. Same box rules as a Cloudflare clip —
+   it needs a shape to reserve because a video has no intrinsic size
+   until it has decoded something — but deliberately smaller than the
+   stills around it. A short loop repeating at the same scale as a
+   photograph competes with it; at this size it reads as a note in the
+   margin of the sequence rather than another plate in it. */
+.stage-clip { height: 27.6vh; aspect-ratio: var(--ar, 4 / 5); max-width: 100%; background: #000; }
+.stage-clip video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+  display: block;
+}
+
+.stage-stream iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.stage-img img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 46vh; /* baseline size the scroll-scale multiplies from */
+  border-radius: 2px;
+}
+
+/* ─── Project nav (prev / archive / next) ────────────────────────────── */
+
+.project-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--iw-rule);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--iw-ink-soft);
+}
+.project-nav a:hover { color: var(--iw-ink); }
+
+/* ─── Index sidebar ───────────────────────────────────────────────────── */
+
+.index-aside {
+  position: sticky;
+  top: calc(var(--iw-header-h) + 2rem);
+  max-height: calc(100vh - var(--iw-header-h) - 4rem);
+  overflow-y: auto;
+  /* Pushed aside and faded by work.js, mirroring .stage-copy. Never set
+     on the archive page, so both are a no-op there. */
+  transform: translateX(calc(var(--push, 0) * 1px));
+  opacity: var(--reveal, 1);
+  z-index: 1;
+  will-change: transform, opacity;
+}
+.index-aside ol { list-style: none; margin-top: -0.85rem; }
+.index-aside li { border-top: 1px solid var(--iw-rule); }
+.index-aside li:last-child { border-bottom: 1px solid var(--iw-rule); }
+.index-aside a {
+  display: block;
+  padding: 0.85rem 0.25rem;
+  transition: opacity 0.2s ease;
+}
+.index-aside a:hover { opacity: 0.6; }
+.index-aside .code {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--iw-accent);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+.index-aside .title { display: block; font-size: 0.85rem; font-weight: 600; }
+.index-aside .sub { display: block; font-size: 0.78rem; color: var(--iw-ink-soft); }
+.index-aside li.active .title { color: var(--iw-accent); }
+
+@media (max-width: 900px) {
+  .index-aside { position: static; max-height: none; margin-top: 2rem; }
+}
+
+/* ─── Work archive grid (work/index.html) ────────────────────────────── */
+
+.archive-intro {
+  max-width: 640px;
+  margin: 0 auto clamp(2.5rem, 5vw, 4rem);
+  text-align: center;
+}
+.archive-intro h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 600; margin-bottom: 0.75rem; }
+.archive-intro p { font-size: 0.95rem; color: var(--iw-ink-soft); line-height: 1.6; }
+
+.archive-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 3vw, 2.5rem) 6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+.archive-card { display: block; }
+.archive-card .frame { width: 100%; }
+.archive-card .frame-inner { width: 100%; }
+.archive-card img { width: 100%; }
+.archive-card .meta { padding-top: 0.9rem; }
+.archive-card .code { display: block; font-size: 0.7rem; color: var(--iw-accent); letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+.archive-card .title { display: block; font-size: 1.05rem; font-weight: 600; }
+.archive-card .sub { display: block; font-size: 0.8rem; color: var(--iw-ink-soft); margin-top: 0.15rem; }
+.archive-card:hover .title { color: var(--iw-accent); }
