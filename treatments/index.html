@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treatments — IAMWE</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="IAMWE treatments — in development.">
+  <style>
+    /* Same tokens as about.css — kept inline, like the homepage, so this
+       page carries no dependency on the about stylesheet's hero rules. */
+    :root {
+      --iw-bg: #f6f5f1;
+      --iw-ink: #141414;
+      --iw-ink-soft: rgba(20, 20, 20, 0.55);
+      --iw-ink-faint: rgba(20, 20, 20, 0.35);
+      --iw-rule: rgba(20, 20, 20, 0.12);
+      --iw-accent: #ff6600;
+
+      --iw-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --iw-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100svh;
+      background: var(--iw-bg);
+      color: var(--iw-ink);
+      font-family: var(--iw-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .mono {
+      font-family: var(--iw-mono);
+      font-size: 0.66rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      font-weight: 400;
+    }
+
+    /* ─── Corner nav ──────────────────────────────────────────────── */
+    .corner {
+      position: fixed;
+      z-index: 40;
+      display: flex;
+      gap: 1.4rem;
+      color: var(--iw-ink);
+    }
+    .corner.tl { top: 1.6rem; left: 1.8rem; }
+    .corner.tr { top: 1.6rem; right: 1.8rem; }
+    .corner a { transition: color 0.25s ease; }
+    .corner a:hover,
+    .corner a:focus-visible { color: var(--iw-accent); }
+
+    /* ─── Page ────────────────────────────────────────────────────── */
+    .tr-page {
+      min-height: 100svh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 1.8rem 4rem;
+    }
+
+    .tr-inner {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .tr-intro { margin-bottom: 3.4rem; }
+
+    .tr-intro .eyebrow {
+      display: block;
+      color: var(--iw-ink-faint);
+      margin-bottom: 1.1rem;
+    }
+
+    .tr-intro h1 {
+      font-size: clamp(1.9rem, 4.4vw, 3rem);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -0.015em;
+      text-wrap: balance;
+      margin-bottom: 1rem;
+    }
+
+    .tr-intro p {
+      color: var(--iw-ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.65;
+      max-width: 46ch;
+    }
+
+    /* ─── The list ────────────────────────────────────────────────── */
+    .tr-list { border-top: 1px solid var(--iw-rule); }
+
+    .tr-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: 1.55rem 0;
+      border-bottom: 1px solid var(--iw-rule);
+      transition: padding-left 0.28s ease, color 0.28s ease;
+    }
+    .tr-item:hover,
+    .tr-item:focus-visible {
+      color: var(--iw-accent);
+      padding-left: 0.7rem;
+    }
+    .tr-item:focus-visible { outline: 2px solid var(--iw-accent); outline-offset: 4px; }
+
+    .tr-item-name {
+      font-size: clamp(1.15rem, 2.3vw, 1.5rem);
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .tr-item-name .x { color: var(--iw-accent); }
+
+    .tr-item-meta {
+      color: var(--iw-ink-faint);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tr-item:hover .tr-item-meta { color: var(--iw-accent); }
+
+    .tr-foot {
+      margin-top: 2.6rem;
+      color: var(--iw-ink-faint);
+    }
+
+    @media (max-width: 620px) {
+      .tr-page { padding-top: 6.5rem; }
+      .tr-item { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tr-item, .corner a { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="corner tl mono">
+    <span>Treatments</span>
+  </div>
+  <div class="corner tr mono">
+    <a href="/">Home</a>
+    <a href="/work/">Work</a>
+    <a href="/about/">About</a>
+  </div>
+
+  <div class="tr-page">
+    <div class="tr-inner">
+
+      <div class="tr-intro">
+        <span class="eyebrow mono">In development</span>
+        <h1>Treatments</h1>
+        <p>Work in progress — ideas being built with the people they're
+        being built for. Access by arrangement.</p>
+      </div>
+
+      <div class="tr-list">
+
+        <!-- One <a> per treatment. Copy the block to add another. -->
+        <a class="tr-item" href="/treatments/wntr-shires-yard/">
+          <span class="tr-item-name">WNTR <span class="x">×</span> Shires Yard</span>
+          <span class="tr-item-meta mono">Bath · Midwinter 2026</span>
+        </a>
+
+      </div>
+
+      <p class="tr-foot mono">Password required</p>
+
+    </div>
+  </div>
+
+</body>
+</html>

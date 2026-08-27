@@ -21,6 +21,20 @@ const projects = Object.fromEntries(
     .map((d) => [`work-${d.name}`, join(workDir, d.name, 'index.html')])
 )
 
+// Treatments are discovered the same way, for the same reason — adding one
+// is a folder with an index.html in it, and never an edit to this file.
+// Their images live in public/treatments/<slug>/ rather than beside the
+// page, so Vite copies them across untouched instead of trying to resolve
+// and hash them: a treatment whose stills haven't landed yet still builds.
+const treatmentsDir = join(here, 'treatments')
+const treatments = existsSync(treatmentsDir)
+  ? Object.fromEntries(
+      readdirSync(treatmentsDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory() && existsSync(join(treatmentsDir, d.name, 'index.html')))
+        .map((d) => [`treatment-${d.name}`, join(treatmentsDir, d.name, 'index.html')])
+    )
+  : {}
+
 export default defineConfig({
   build: {
     outDir: 'dist',
@@ -29,7 +43,10 @@ export default defineConfig({
       input: {
         main: r('./index.html'),
         work: r('./work/index.html'),
+        about: r('./about/index.html'),
+        treatments: r('./treatments/index.html'),
         ...projects,
+        ...treatments,
       },
     },
   },

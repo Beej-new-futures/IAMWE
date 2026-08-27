@@ -77,6 +77,21 @@
     .nav-item.left  { left: 1.5rem; }
     .nav-item.right { right: 1.5rem; }
 
+    /* Treatments sits bottom-right — work and about own the top corners,
+       and the scroll hint is centred, so nothing collides. */
+    .nav-item.bottom { top: auto; bottom: 1.5rem; }
+
+    /* The other labels are short enough to overflow their 48px box evenly
+       and still clear the viewport edge. "Treatments" is not, so its label
+       hangs off the right edge of the icon and grows inwards instead of
+       being centred and clipped by the body's overflow:hidden. */
+    .nav-item.bottom span {
+      left: auto;
+      right: 0;
+      width: max-content;
+      justify-content: flex-end;
+    }
+
     .nav-item img,
     .nav-item span {
       position: absolute;
@@ -123,9 +138,13 @@
     <img src="/nav_symbol_01.png" alt="Work">
     <span>Work</span>
   </a>
-  <a href="#" class="nav-item right">
+  <a href="/about/" class="nav-item right">
     <img src="/nav_symbol_02.png" alt="About">
     <span>About</span>
+  </a>
+  <a href="/treatments/" class="nav-item right bottom">
+    <img src="/nav_symbol_03.png" alt="Treatments">
+    <span>Treatments</span>
   </a>
 
   <div id="scroll-hint">Scroll</div>

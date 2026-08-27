@@ -1,0 +1,256 @@
+/* ─── IAMWE / About ──────────────────────────────────────────────────────
+   One screen, split in two: the tiled portrait on one side, the studio's
+   own account of itself on the other — paper, ink, the mono labels,
+   the same system as everywhere else on the site. No sidebar index here;
+   there is nothing to index against. */
+
+:root {
+  --iw-bg: #f6f5f1;
+  --iw-ink: #141414;
+  --iw-ink-soft: rgba(20, 20, 20, 0.55);
+  --iw-ink-faint: rgba(20, 20, 20, 0.35);
+  --iw-rule: rgba(20, 20, 20, 0.12);
+  --iw-accent: #ff6600;
+
+  --iw-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --iw-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--iw-bg);
+  color: var(--iw-ink);
+  font-family: var(--iw-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.mono {
+  font-family: var(--iw-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* ─── Corner nav ────────────────────────────────────────────────────── */
+
+.corner {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  gap: 1.4rem;
+  color: var(--iw-ink);
+}
+.corner.tl { top: 1.6rem; left: 1.8rem; }
+.corner.tr { top: 1.6rem; right: 1.8rem; }
+.corner a { transition: color 0.25s ease; }
+.corner a:hover { color: var(--iw-accent); }
+
+/* The tl label sits on the image panel, whose tone is unpredictable —
+   same fix the homepage nav uses. The tr nav sits on paper, so it just
+   takes the ordinary ink colour. */
+.corner.on-hero { color: #fff; mix-blend-mode: difference; }
+
+/* ─── The split ─────────────────────────────────────────────────────── */
+
+.about-page {
+  display: flex;
+  height: 100svh;
+  min-height: 560px;
+}
+@media (max-width: 860px) {
+  .about-page { flex-direction: column; height: auto; min-height: 0; }
+  html, body { overflow: visible; }
+}
+
+/* ─── Hero panel ────────────────────────────────────────────────────────
+   The poster <img> is the whole effect for anyone without WebGL2 or with
+   reduced motion set — duotoned with a CSS filter so it never looks like
+   a placeholder. about-hero.js swaps it for the live canvas only once a
+   frame has actually been drawn (.has-hero-live), and never removes it,
+   so a WebGL failure mid-load just leaves the still image showing. */
+
+.about-hero {
+  position: relative;
+  flex: 1 1 50%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--iw-ink);
+}
+@media (max-width: 860px) {
+  .about-hero { flex: none; height: 46vh; min-height: 340px; }
+}
+
+.about-hero-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(1) contrast(1.15) sepia(1) hue-rotate(310deg) saturate(2.4);
+  transition: opacity 0.5s ease;
+}
+.about-hero.has-hero-live .about-hero-poster { opacity: 0; }
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  /* A true duotone — every tile's photo remapped by luminance from
+     cool to warm, not the CSS filter chain's blunt approximation used
+     on the static poster fallback below. The filter itself (its exact
+     colours) is injected as an SVG <filter> by about-hero.js, so the
+     two named constants there are the only place to change the palette. */
+  filter: url(#iw-duotone);
+}
+.hero-grid.is-live { opacity: 1; }
+
+.hero-tile {
+  position: absolute;
+  overflow: hidden;
+}
+.hero-tile img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The seam grid — one decorative layer drawn OVER the (already
+   duotoned) tiles, not inside them. It has to live outside .hero-grid:
+   a tile's photo fills that tile edge-to-edge, so any border drawn on
+   the tile itself would sit underneath the photo and never show, and a
+   line drawn inside the filtered subtree would get remapped by the
+   duotone filter along with everything else instead of staying a
+   clean dark line. This layer never moves and is never displaced —
+   it is the one part of the effect that is truly just a static window. */
+.hero-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.hero-grid-lines.is-live { opacity: 1; }
+
+.about-hero-caption {
+  position: absolute;
+  left: 1.8rem;
+  bottom: 1.8rem;
+  z-index: 20;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  mix-blend-mode: difference;
+}
+
+/* ─── Body panel ────────────────────────────────────────────────────── */
+
+.about-body-panel {
+  flex: 1 1 50%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+@media (max-width: 860px) {
+  .about-body-panel { flex: none; height: auto; overflow: visible; }
+}
+
+.about-body {
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1.8rem, 4vw, 3.5rem);
+}
+
+.about-intro { margin-bottom: clamp(2rem, 4vw, 2.75rem); }
+.about-intro .eyebrow {
+  display: block;
+  color: var(--iw-accent);
+  margin-bottom: 0.8rem;
+}
+.about-intro h1 {
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+.about-intro p {
+  font-size: 0.94rem;
+  line-height: 1.65;
+  color: var(--iw-ink-soft);
+}
+
+.about-practices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+  padding-top: clamp(1.75rem, 3.5vw, 2.25rem);
+  border-top: 1px solid var(--iw-rule);
+}
+@media (max-width: 480px) {
+  .about-practices { grid-template-columns: 1fr; }
+}
+
+.about-practice .code {
+  display: block;
+  color: var(--iw-accent);
+  margin-bottom: 0.5rem;
+}
+.about-practice h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+.about-practice .role {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--iw-ink-faint);
+  margin-bottom: 0.7rem;
+}
+.about-practice p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--iw-ink-soft);
+  margin-bottom: 0.7rem;
+}
+.about-practice .credits {
+  font-size: 0.72rem;
+  color: var(--iw-ink-faint);
+  line-height: 1.55;
+}
+
+.about-cta {
+  margin-top: clamp(1.75rem, 3.5vw, 2.25rem);
+  padding-top: clamp(1.25rem, 2.5vw, 1.5rem);
+  border-top: 1px solid var(--iw-rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.about-cta p { font-size: 0.85rem; color: var(--iw-ink-soft); }
+.about-cta a.mono { color: var(--iw-accent); }
+.about-cta a.mono:hover { color: var(--iw-ink); }
+
+/* ─── Footer ─────────────────────────────────────────────────────────── */
+
+.about-footer {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 clamp(1.8rem, 4vw, 3.5rem) clamp(2rem, 4vw, 3rem);
+}
+.about-footer .mono { color: var(--iw-ink-faint); display: flex; gap: 0.7rem; }
+.about-footer .mono::before { content: '—'; }
