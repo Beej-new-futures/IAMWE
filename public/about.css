@@ -92,6 +92,8 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Same focal point the tiles crop to — about-hero.js owns the value. */
+  object-position: var(--iw-hero-focus-x, 50%) var(--iw-hero-focus-y, 50%);
   display: block;
   filter: grayscale(1) contrast(1.15) sepia(1) hue-rotate(310deg) saturate(2.4);
   transition: opacity 0.5s ease;
@@ -107,6 +109,7 @@ a { color: inherit; text-decoration: none; }
    --iw-hero-bleed is written by the JS so the two can never drift. */
 .about-hero.has-hero-live .about-hero-poster {
   transform: scale(var(--iw-hero-bleed, 1.22));
+  transform-origin: var(--iw-hero-focus-x, 50%) var(--iw-hero-focus-y, 50%);
 }
 
 .hero-grid {
@@ -196,12 +199,20 @@ a { color: inherit; text-decoration: none; }
   color: var(--iw-accent);
   margin-bottom: 0.8rem;
 }
-.about-intro h1 {
-  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-  margin-bottom: 1rem;
+/* The heading is the wordmark, not type. Sized off the measure rather
+   than the viewport so it keeps its proportion to the paragraph beneath
+   it at any width; the SVG is 4:1, so height follows from width. */
+.about-intro h1.about-wordmark {
+  margin-bottom: 1.35rem;
+  line-height: 0;
+}
+.about-intro h1.about-wordmark img {
+  display: block;
+  width: clamp(95px, 23%, 140px);
+  height: auto;
+  /* Centred on the measure, not the panel — it sits over the paragraph
+     it belongs to rather than floating in the middle of the column. */
+  margin-inline: auto;
 }
 .about-intro p {
   font-size: 0.94rem;
@@ -220,15 +231,15 @@ a { color: inherit; text-decoration: none; }
   .about-practices { grid-template-columns: 1fr; }
 }
 
+/* The name in accent is the whole heading for a practice now — "Beej"
+   and "Dal" have gone. It keeps the vertical position they held rather
+   than rising to fill the gap, so the two columns still start on the
+   same line as the rule above them and the block doesn't crowd it. */
 .about-practice .code {
   display: block;
   color: var(--iw-accent);
+  margin-top: 1.45rem;
   margin-bottom: 0.5rem;
-}
-.about-practice h2 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 0.15rem;
 }
 .about-practice .role {
   display: block;

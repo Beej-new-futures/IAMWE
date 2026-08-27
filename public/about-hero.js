@@ -67,8 +67,24 @@
 
   // How the photo behind the tiles is scaled beyond a plain cover-fit,
   // so a tile can slide its picture without ever exposing a bare edge.
-  // At the largest drag this still leaves comfortable room to spare.
-  const BLEED = 1.22;
+  // Cover-fit is already the least zoom that fills the panel, so this is
+  // the only zoom that is a choice rather than a requirement — every
+  // point of it is picture thrown away. It was 1.22, which on top of a
+  // 4:3 photo in a near-square panel read as punched in. 1.08 is the
+  // floor that still gives the drag below its full range vertically
+  // (see the slack maths in build); going lower means lowering
+  // MAX_DRAG_PX with it, or the clamp simply shortens the drag.
+  const BLEED = 1.08;
+
+  // Where the crop sits. The photo is 4:3 and the panel is close to
+  // square, so cover-fit throws away roughly an eighth of the picture off
+  // each side — and dead centre put that cut through Beej, who is at
+  // about 0.78 across, while spending the left of the frame on empty
+  // sand. 0.5 is centred; higher keeps more of the right-hand side.
+  // These behave exactly like the two halves of object-position, and the
+  // poster underneath is handed them so its crop stays identical.
+  const FOCUS_X = 0.80;
+  const FOCUS_Y = 0.50;
 
   // The brush — how far a fully-engaged tile's picture slides (px, at
   // the brush's own centre — every tile that close in slides about
@@ -77,7 +93,7 @@
   // far behind the real cursor the brush's own centre trails. A lower
   // EASE makes the drag visibly lag further behind the cursor; 1.0
   // would remove the delay entirely and snap straight to it.
-  const MAX_DRAG_PX = 44;
+  const MAX_DRAG_PX = 34;
   const BRUSH_RADIUS_FRAC = 0.42;  // × the shorter side of the panel
   const BRUSH_EASE = 0.055;
   const MOUSE_FADE_MS = 700;
@@ -139,7 +155,12 @@
   mount.appendChild(gridLines);
 
   let cols = 0, rows = 0, cellW = 0, cellH = 0;
-  let slackX = 0, slackY = 0; // px a picture may slide before baring an edge
+  // How far a picture may slide before its own edge enters the tile
+  // window. Four numbers, not two: once FOCUS is off centre the margin
+  // is not the same on both sides — at FOCUS_X 0.8 there is four times
+  // as much room to the left as to the right — and a symmetric clamp
+  // would happily slide a tile straight off its short side.
+  let maxTX = 0, minTX = 0, maxTY = 0, minTY = 0;
   let tiles = []; // { img, ci, cj, ... } — ci/cj are this tile's centre, 0..1
 
   function build() {
@@ -164,7 +185,7 @@
     const ih = poster.naturalHeight || 1200;
     const scale = Math.max(W / iw, H / ih) * BLEED;
     const sw = iw * scale, sh = ih * scale;
-    const offX = (W - sw) / 2, offY = (H - sh) / 2;
+    const offX = (W - sw) * FOCUS_X, offY = (H - sh) * FOCUS_Y;
 
     // How far any single picture may slide before its own edge would
     // enter the tile window. BLEED sets this as a fraction of the panel,
@@ -173,15 +194,23 @@
     // which reads as a black square, since .about-hero sits on ink.
     // Clamping every offset to the real measured slack fixes that at any
     // panel size without zooming the photo further in for everyone.
-    slackX = Math.max(0, (sw - W) / 2 - 1);
-    slackY = Math.max(0, (sh - H) / 2 - 1);
+    // A positive tx slides the picture right, so it is bounded by the
+    // margin sitting off the left edge — which is the side FOCUS ate into.
+    maxTX = Math.max(0, (sw - W) * FOCUS_X - 1);
+    minTX = -Math.max(0, (sw - W) * (1 - FOCUS_X) - 1);
+    maxTY = Math.max(0, (sh - H) * FOCUS_Y - 1);
+    minTY = -Math.max(0, (sh - H) * (1 - FOCUS_Y) - 1);
 
     const src = poster.currentSrc || poster.src;
 
-    // Hand BLEED to the stylesheet so the poster underneath can scale by
-    // exactly the same factor. Both are cover-fit and centred, so one
-    // shared number keeps the backdrop aligned with the tiles to the pixel.
+    // Hand the placement to the stylesheet so the poster underneath lands
+    // in exactly the same spot. object-position takes the focus directly;
+    // making it the transform-origin too means scaling by BLEED pivots on
+    // that same point, which is what keeps the two crops identical rather
+    // than merely similar (scaling about the centre would not).
     mount.style.setProperty('--iw-hero-bleed', String(BLEED));
+    mount.style.setProperty('--iw-hero-focus-x', (FOCUS_X * 100) + '%');
+    mount.style.setProperty('--iw-hero-focus-y', (FOCUS_Y * 100) + '%');
 
     const frag = document.createDocumentFragment();
 
@@ -315,8 +344,8 @@
 
       // Hard stop at the measured bleed margin — drift and drag are
       // summed, so neither one alone staying inside the budget is enough.
-      if (tx > slackX) tx = slackX; else if (tx < -slackX) tx = -slackX;
-      if (ty > slackY) ty = slackY; else if (ty < -slackY) ty = -slackY;
+      if (tx > maxTX) tx = maxTX; else if (tx < minTX) tx = minTX;
+      if (ty > maxTY) ty = maxTY; else if (ty < minTY) ty = minTY;
 
       // translate(), not translate3d() — the 3d form asks for a composited
       // layer per tile, which is the same layer pressure will-change was
