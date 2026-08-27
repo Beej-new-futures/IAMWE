@@ -70,6 +70,31 @@ a { color: inherit; text-decoration: none; }
 .corner a { transition: color 0.25s ease; }
 .corner a:hover { color: var(--iw-accent); }
 
+/* ─── Mobile nav ──────────────────────────────────────────────────────
+   The two fixed corners are laid out independently, so on a phone they
+   simply run into each other — measured at up to 337px of overlap, with
+   the right-hand nav starting off the left edge of the screen. Three
+   things give the room back, in order of what matters least:
+
+   1. The location and clock. Atmosphere on a desktop, and the widest
+      thing in the left corner. A lone page label (the About page's) is
+      kept, since it is short and tells you where you are.
+   2. Contact — it is a mailto, and it is in the footer of every page.
+   3. Index (08) on the archive, which jumps to a list further down the
+      same page you are already on.
+
+   What survives is the set that actually moves you around the site:
+   Home, Work, About, Treatments. */
+@media (max-width: 620px) {
+  .corner.tl, .corner.tr { gap: 1.1rem; font-size: 0.72rem; }
+  .corner.tl { top: 1.1rem; left: 1.1rem; }
+  .corner.tr { top: 1.1rem; right: 1.1rem; }
+  .corner.tl span:not(:only-child) { display: none; }
+  .corner.tr a[href^="mailto:"] { display: none; }
+  .corner.tr a[href="#index"] { display: none; }
+}
+
+
 /* The tl label sits on the image panel, whose tone is unpredictable —
    same fix the homepage nav uses. The tr nav sits on paper, so it just
    takes the ordinary ink colour. */
