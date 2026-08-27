@@ -3,18 +3,26 @@
 // A grid of real DOM tiles, each one a fixed window clipped onto the
 // SAME underlying photograph — solo any single tile and it shows
 // exactly its own slice of the whole picture, at the same scale as
-// every other tile. At rest every tile sits at zero offset, so the
-// grid lines simply read as a window laid over one true image, not a
-// repeating pattern of it.
+// every other tile. Offsets stay small enough that the grid lines read
+// as a window laid over one true image, not a repeating pattern of it.
 //
-// On mouse move, each tile's PICTURE slides — the tile itself, the
-// window clipping it, never moves or resizes. How far a given tile's
-// picture slides is set by a radial brush centred on the cursor: tiles
-// right under the brush slide close to the full amount, tiles further
-// out slide less, fading to nothing past the brush's radius. The
-// brush's own centre is not the raw cursor position but an eased trail
-// of it (curMouseX/Y below) — that gap between the two is the entire
-// delay described in the spec; nothing else here is time-based.
+// Two things move a tile's PICTURE — the tile itself, the window
+// clipping it, never moves or resizes:
+//
+//   1. An ambient drift. Every tile carries its own amplitude, speed
+//      and phase, so the grid is never entirely still and never pulses
+//      in unison. A few px over 14–30s: breathing, not animation.
+//   2. The cursor. A radial brush centred on the (eased) pointer pulls
+//      nearby tiles' pictures toward it — tiles right under the brush
+//      slide close to the full amount, tiles further out less, fading
+//      to nothing past the brush's radius. The brush's centre is an
+//      eased trail of the raw cursor (curMouseX/Y below), and that gap
+//      between the two is the entire delay described in the spec.
+//
+// The two are summed and then clamped to the real bleed margin, so no
+// combination of drift and drag can ever slide a picture far enough to
+// bare its own edge — which on this dark panel would read as a black
+// square punched into the portrait.
 //
 // An earlier version of this file used one WebGL canvas with a
 // per-pixel radial push instead of per-tile divs. That reads as a
@@ -71,6 +79,19 @@
   const BRUSH_EASE = 0.055;
   const MOUSE_FADE_MS = 700;
 
+  // The ambient drift — the grid is never completely still. Each tile
+  // gets its own amplitude, speed and phase, drawn once at build time,
+  // so no two tiles share a rhythm and the grid never visibly pulses in
+  // unison the way a single shared clock would make it. Periods are in
+  // the 14–30s range: slow enough to read as breathing rather than
+  // animation, and the amplitude is a few px so the seams stay legible
+  // as one image. This rides on top of the cursor drag, so the two add
+  // rather than fight; AMBIENT_PX is counted against the bleed budget
+  // below alongside MAX_DRAG_PX.
+  const AMBIENT_PX = 5;
+  const AMBIENT_SPEED_MIN = 0.21;  // rad/s → ~30s period
+  const AMBIENT_SPEED_MAX = 0.45;  // rad/s → ~14s period
+
   // Warm → cool duotone, mapped by luminance (dark photo → cool, bright
   // photo → warm) — an SVG filter, not a CSS filter chain, because a
   // real duotone needs to remap colour by luminance, which grayscale
@@ -115,7 +136,8 @@
   mount.appendChild(gridLines);
 
   let cols = 0, rows = 0, cellW = 0, cellH = 0;
-  let tiles = []; // { img, ci, cj } — ci/cj are this tile's centre, 0..1
+  let slackX = 0, slackY = 0; // px a picture may slide before baring an edge
+  let tiles = []; // { img, ci, cj, ... } — ci/cj are this tile's centre, 0..1
 
   function build() {
     const rect = mount.getBoundingClientRect();
@@ -141,7 +163,28 @@
     const sw = iw * scale, sh = ih * scale;
     const offX = (W - sw) / 2, offY = (H - sh) / 2;
 
+    // How far any single picture may slide before its own edge would
+    // enter the tile window. BLEED sets this as a fraction of the panel,
+    // so on a short panel (the mobile hero is 46vh) the margin can fall
+    // below MAX_DRAG_PX + AMBIENT_PX and a tile bares a hard edge —
+    // which reads as a black square, since .about-hero sits on ink.
+    // Clamping every offset to the real measured slack fixes that at any
+    // panel size without zooming the photo further in for everyone.
+    slackX = Math.max(0, (sw - W) / 2 - 1);
+    slackY = Math.max(0, (sh - H) / 2 - 1);
+
     const src = poster.currentSrc || poster.src;
+
+    // The same photo, same placement, painted once behind the tiles.
+    // Tiles are opaque and cover it completely at rest, so it is never
+    // seen in normal running — it exists so that a tile whose <img> has
+    // not decoded yet (144 of them are requested at once on a cold load)
+    // shows the correct slice of the picture instead of a black hole.
+    grid.style.backgroundImage = `url("${src}")`;
+    grid.style.backgroundSize = `${sw}px ${sh}px`;
+    grid.style.backgroundPosition = `${offX}px ${offY}px`;
+    grid.style.backgroundRepeat = 'no-repeat';
+
     const frag = document.createDocumentFragment();
 
     for (let j = 0; j < rows; j++) {
@@ -169,7 +212,24 @@
 
         tile.appendChild(img);
         frag.appendChild(tile);
-        tiles.push({ img, ci: (i + 0.5) / cols, cj: (j + 0.5) / rows });
+
+        // Per-tile drift constants, drawn once here rather than derived
+        // from the tile's position — anything positional (index, row,
+        // distance from centre) would put neighbours in near-lockstep
+        // and the grid would read as a travelling wave instead of a set
+        // of independent, slightly restless windows.
+        const rnd = (lo, hi) => lo + Math.random() * (hi - lo);
+        tiles.push({
+          img,
+          ci: (i + 0.5) / cols,
+          cj: (j + 0.5) / rows,
+          ampX: AMBIENT_PX * rnd(0.45, 1),
+          ampY: AMBIENT_PX * rnd(0.45, 1),
+          spdX: rnd(AMBIENT_SPEED_MIN, AMBIENT_SPEED_MAX),
+          spdY: rnd(AMBIENT_SPEED_MIN, AMBIENT_SPEED_MAX),
+          phX: Math.random() * Math.PI * 2,
+          phY: Math.random() * Math.PI * 2,
+        });
       }
     }
     grid.appendChild(frag);
@@ -233,18 +293,34 @@
     // (Unlike a continuous per-pixel field, dividing by "distance to
     // cursor" here is safe — a tile's centre essentially never lands
     // exactly on the cursor pixel, so there's no singularity to guard.)
+    // Seconds, not ms — the drift speeds above are in rad/s so the
+    // periods stay readable as periods.
+    const time = now * 0.001;
+
     for (let idx = 0; idx < tiles.length; idx++) {
       const t = tiles[idx];
       const cx = t.ci * W, cy = t.cj * H;
       const dx = cursorPx.x - cx, dy = cursorPx.y - cy;
       const d = Math.hypot(dx, dy);
       const k = (d >= radius ? 0 : 1 - smoothstep(0, radius, d)) * mouseMix;
-      if (k <= 0.001 || d < 0.5) {
-        t.img.style.transform = '';
-      } else {
+
+      // The drift runs whether or not the cursor is anywhere near, which
+      // is the point of it — the grid is alive on an untouched page.
+      let tx = Math.sin(time * t.spdX + t.phX) * t.ampX;
+      let ty = Math.cos(time * t.spdY + t.phY) * t.ampY;
+
+      if (k > 0.001 && d >= 0.5) {
         const pull = (k * MAX_DRAG_PX) / d; // turns (dx,dy) into a unit vector scaled by k*MAX_DRAG_PX
-        t.img.style.transform = `translate3d(${(dx * pull).toFixed(2)}px, ${(dy * pull).toFixed(2)}px, 0)`;
+        tx += dx * pull;
+        ty += dy * pull;
       }
+
+      // Hard stop at the measured bleed margin — drift and drag are
+      // summed, so neither one alone staying inside the budget is enough.
+      if (tx > slackX) tx = slackX; else if (tx < -slackX) tx = -slackX;
+      if (ty > slackY) ty = slackY; else if (ty < -slackY) ty = -slackY;
+
+      t.img.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0)`;
     }
 
     if (!grid.classList.contains('is-live')) {
