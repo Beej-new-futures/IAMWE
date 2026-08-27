@@ -87,8 +87,10 @@
        row twitching each time a digit changes width. */
     #clock { font-variant-numeric: tabular-nums; }
     .corner a { color: inherit; text-decoration: none; transition: color 0.25s ease; }
+    /* Painted value, not perceived: difference shows |backdrop - this|,
+       so this blue is what renders as the accent orange. */
     .corner a:hover,
-    .corner a:focus-visible { color: #ff6600; }
+    .corner a:focus-visible { color: rgb(0, 143, 241); }
     @media (max-width: 620px) {
       .corner { gap: 1.1rem; font-size: 0.72rem; }
       .corner.tl { top: 1.1rem; left: 1.1rem; }

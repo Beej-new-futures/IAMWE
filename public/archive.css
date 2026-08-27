@@ -82,7 +82,18 @@ a { color: inherit; text-decoration: none; }
 .corner.tl, .corner.tr {
   font-size: 0.86rem;
   gap: 1.8rem;
+  /* Same trick the homepage mark uses: white through difference, so the
+     nav is dark on paper and light over an image without ever being told
+     which it is sitting on. */
+  color: #fff;
+  mix-blend-mode: difference;
 }
+/* Under difference the painted colour is NOT the colour you see — the
+   screen shows |backdrop - this|. #ff6600 here would come out blue on
+   paper. rgb(0,143,241) is the value that renders as the accent orange
+   against #f6f5f1; check it with the same subtraction before changing it. */
+.corner.tl a:hover, .corner.tr a:hover,
+.corner.tl a:focus-visible, .corner.tr a:focus-visible { color: rgb(0, 143, 241); }
 
 .corner a { transition: color 0.25s ease; }
 .corner a:hover { color: var(--iw-accent); }
