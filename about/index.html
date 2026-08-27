@@ -5,6 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About — IAMWE</title>
   <meta name="description" content="IAMWE is James Harford and Daljit Kaur — motion design, digital art and film alongside interior and spatial design, working under one name.">
+
+  <!-- This page is light, always. Without this the browser is entitled to
+       use its own dark base colour for the canvas before any stylesheet
+       has applied — which on a dark-themed OS is what made the page render
+       black for a beat and then snap to the text. -->
+  <meta name="color-scheme" content="light">
+
+  <!-- Critical paint, inline and unblockable.
+       about.css is a separate request, and it shares the connection with
+       a 300KB portrait that starts downloading at the same moment — on a
+       slow link the stylesheet has been measured arriving 8s in, and until
+       it does the document has no background, no split and no colours of
+       its own. These few rules are only what the FIRST paint needs: the
+       paper ground, the ink hero, and the two panels side by side. Every
+       other rule, and every override of these, still lives in about.css.
+       Keep the values here in step with the tokens there. -->
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: #f6f5f1;
+      color: #141414;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    .about-page { display: flex; min-height: 100svh; }
+    .about-hero { flex: 1 1 50%; position: relative; overflow: hidden; background: #141414; }
+    .about-body-panel { flex: 1 1 50%; }
+  </style>
+
   <link rel="stylesheet" href="/about.css">
 </head>
 <body>
