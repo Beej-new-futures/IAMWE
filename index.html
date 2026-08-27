@@ -62,66 +62,38 @@
       50%       { opacity: 0.7; }
     }
 
-    .nav-item {
+    /* Same corner nav as /work/ and /about/, at the same size. The
+       symbols it replaces were charming but unlabelled — three marks
+       that only resolved into words on hover, which is a guessing game
+       once there are four of them. Difference blend because what sits
+       behind here is a moving canvas, not paper, so no fixed colour is
+       readable against all of it. */
+    .corner {
       position: fixed;
-      top: 1.5rem;
       z-index: 100;
-      display: block;
-      width: 48px;
-      height: 48px;
-      text-decoration: none;
-      cursor: pointer;
+      display: flex;
+      gap: 1.8rem;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.86rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      font-weight: 400;
+      color: #fff;
       mix-blend-mode: difference;
     }
-
-    .nav-item.left  { left: 1.5rem; }
-    .nav-item.right { right: 1.5rem; }
-
-    /* Treatments sits bottom-right — work and about own the top corners,
-       and the scroll hint is centred, so nothing collides. */
-    .nav-item.bottom { top: auto; bottom: 1.5rem; }
-
-    /* The other labels are short enough to overflow their 48px box evenly
-       and still clear the viewport edge. "Treatments" is not, so its label
-       hangs off the right edge of the icon and grows inwards instead of
-       being centred and clipped by the body's overflow:hidden. */
-    .nav-item.bottom span {
-      left: auto;
-      right: 0;
-      width: max-content;
-      justify-content: flex-end;
+    .corner.tl { top: 1.6rem; left: 1.8rem; }
+    .corner.tr { top: 1.6rem; right: 1.8rem; }
+    /* The clock reflows every fifteen seconds; tabular figures stop the
+       row twitching each time a digit changes width. */
+    #clock { font-variant-numeric: tabular-nums; }
+    .corner a { color: inherit; text-decoration: none; transition: color 0.25s ease; }
+    .corner a:hover,
+    .corner a:focus-visible { color: #ff6600; }
+    @media (max-width: 620px) {
+      .corner { gap: 1.1rem; font-size: 0.72rem; }
+      .corner.tl { top: 1.1rem; left: 1.1rem; }
+      .corner.tr { top: 1.1rem; right: 1.1rem; }
     }
-
-    .nav-item img,
-    .nav-item span {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.35s ease;
-    }
-
-    .nav-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      opacity: 1;
-      filter: invert(1);
-    }
-
-    .nav-item span {
-      opacity: 0;
-      color: #ff6600;
-      font-size: 1.3rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .nav-item:hover span { opacity: 1; }
   </style>
 </head>
 <body>
@@ -134,20 +106,36 @@
     <img src="/IAMWE_LOGO_.svg" alt="IAMWE">
   </div>
 
-  <a href="/work/" class="nav-item left">
-    <img src="/nav_symbol_01.png" alt="Work">
-    <span>Work</span>
-  </a>
-  <a href="/about/" class="nav-item right">
-    <img src="/nav_symbol_02.png" alt="About">
-    <span>About</span>
-  </a>
-  <a href="/treatments/" class="nav-item right bottom">
-    <img src="/nav_symbol_03.png" alt="Treatments">
-    <span>Treatments</span>
-  </a>
+  <div class="corner tl">
+    <span>London, (UK)</span>
+    <span>·</span>
+    <span id="clock">—</span>
+    <a href="/work/">Work</a>
+  </div>
+
+  <div class="corner tr">
+    <a href="/about/">About</a>
+    <a href="/treatments/">Treatments</a>
+    <a href="mailto:graphicsoloutions@gmail.com">Contact</a>
+  </div>
 
   <div id="scroll-hint">Scroll</div>
+
+  <script>
+    // Same clock as the archive page. Bath is London time, and the point
+    // of it is that the studio reads as somewhere real and currently
+    // awake — so it ticks rather than being stamped once at build.
+    (function(){
+      var el = document.getElementById('clock');
+      if(!el) return;
+      var fmt = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/London'
+      });
+      var tick = function(){ el.textContent = fmt.format(new Date()); };
+      tick();
+      setInterval(tick, 15000);
+    })();
+  </script>
 
   <script type="module" src="/src/main.js"></script>
 </body>

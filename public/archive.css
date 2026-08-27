@@ -76,6 +76,14 @@ a { color: inherit; text-decoration: none; }
 .corner.bl { bottom: 1.6rem; left: 1.8rem; flex-direction: column; gap: 0.25rem; }
 .corner.br { bottom: 1.6rem; right: 1.8rem; }
 
+/* The two top corners carry the site nav, so they run a step larger than
+   the .mono default the captions and credits use — the bottom-left
+   credits block deliberately stays at the smaller size. */
+.corner.tl, .corner.tr {
+  font-size: 0.86rem;
+  gap: 1.8rem;
+}
+
 .corner a { transition: color 0.25s ease; }
 .corner a:hover { color: var(--iw-accent); }
 
