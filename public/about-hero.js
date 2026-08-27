@@ -39,10 +39,13 @@
 // source to read — so this is a rebuild from looking at it and from
 // James's own corrections, not a copy of any code.
 //
-// Static fallback: the plain <img> already in the HTML, duotoned with
-// a CSS filter, is never removed — only hidden once this file confirms
-// the grid has actually been built and drawn a frame. Anyone with
-// reduced motion set keeps the still image and none of this runs.
+// Static fallback: the plain <img> already in the HTML is never removed
+// and, once the grid is live, is no longer hidden either — it is scaled
+// by BLEED and given the grid's own SVG duotone so it sits underneath as
+// a pixel-aligned copy of the same picture. Nothing normally sees it;
+// it is there so that any tile the compositor fails to paint reveals the
+// portrait rather than the panel's ink. Anyone with reduced motion set
+// keeps the still image, CSS-duotoned, and none of the rest runs.
 
 (() => {
   const mount = document.querySelector('.about-hero');
@@ -175,15 +178,10 @@
 
     const src = poster.currentSrc || poster.src;
 
-    // The same photo, same placement, painted once behind the tiles.
-    // Tiles are opaque and cover it completely at rest, so it is never
-    // seen in normal running — it exists so that a tile whose <img> has
-    // not decoded yet (144 of them are requested at once on a cold load)
-    // shows the correct slice of the picture instead of a black hole.
-    grid.style.backgroundImage = `url("${src}")`;
-    grid.style.backgroundSize = `${sw}px ${sh}px`;
-    grid.style.backgroundPosition = `${offX}px ${offY}px`;
-    grid.style.backgroundRepeat = 'no-repeat';
+    // Hand BLEED to the stylesheet so the poster underneath can scale by
+    // exactly the same factor. Both are cover-fit and centred, so one
+    // shared number keeps the backdrop aligned with the tiles to the pixel.
+    mount.style.setProperty('--iw-hero-bleed', String(BLEED));
 
     const frag = document.createDocumentFragment();
 
@@ -320,15 +318,20 @@
       if (tx > slackX) tx = slackX; else if (tx < -slackX) tx = -slackX;
       if (ty > slackY) ty = slackY; else if (ty < -slackY) ty = -slackY;
 
-      t.img.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0)`;
+      // translate(), not translate3d() — the 3d form asks for a composited
+      // layer per tile, which is the same layer pressure will-change was
+      // creating, and buys nothing inside a filtered subtree.
+      t.img.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
     }
 
     if (!grid.classList.contains('is-live')) {
       grid.classList.add('is-live');
       gridLines.classList.add('is-live');
       mount.classList.add('has-hero-live');
-      // Match the poster fallback to the live grid's exact duotone, in
-      // case it's still visible mid-crossfade.
+      // The poster stays on screen underneath the grid rather than fading
+      // out, so it has to carry the grid's exact duotone, not the CSS
+      // filter-chain approximation it starts with. Same filter, and the
+      // stylesheet scales it by the same BLEED — so the two images agree.
       poster.style.filter = 'url(#iw-duotone)';
     }
   }

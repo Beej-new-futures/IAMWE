@@ -96,7 +96,18 @@ a { color: inherit; text-decoration: none; }
   filter: grayscale(1) contrast(1.15) sepia(1) hue-rotate(310deg) saturate(2.4);
   transition: opacity 0.5s ease;
 }
-.about-hero.has-hero-live .about-hero-poster { opacity: 0; }
+/* The poster is NOT hidden once the grid is live — it stays underneath as
+   an exact backdrop. about-hero.js swaps its CSS filter chain for the same
+   SVG duotone the tiles use, and scales it by the same BLEED factor, so it
+   lines up with the tiles pixel for pixel: cover-fit, centred, × 1.22.
+   Anything that stops a tile painting — and inside a filtered subtree of
+   ~200 layers the compositor can and does drop bands of them — then reveals
+   the right part of the picture instead of a black hole punched in the
+   portrait. It costs one already-decoded image kept on screen.
+   --iw-hero-bleed is written by the JS so the two can never drift. */
+.about-hero.has-hero-live .about-hero-poster {
+  transform: scale(var(--iw-hero-bleed, 1.22));
+}
 
 .hero-grid {
   position: absolute;
@@ -122,7 +133,13 @@ a { color: inherit; text-decoration: none; }
   display: block;
   max-width: none;
   pointer-events: none;
-  will-change: transform;
+  /* No will-change here. It reads like the obvious optimisation — these
+     images are transformed every frame — but .hero-grid carries an SVG
+     filter, so the whole subtree has to be rasterised together on the CPU
+     and the GPU fast path this would buy is unavailable anyway. All it
+     actually does is ask the compositor for ~200 separate layers inside
+     that one filtered surface, which is what makes it give up on bands of
+     them and leave them unpainted. */
 }
 
 /* The seam grid — one decorative layer drawn OVER the (already
