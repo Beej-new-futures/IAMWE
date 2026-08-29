@@ -443,34 +443,6 @@
     color:var(--ink-faint);line-height:2;text-align:right;
   }
 
-  /* ---------- access gate ---------- */
-  #gate{
-    position:fixed;inset:0;z-index:100;background:var(--void);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:24px;text-align:center;gap:22px;
-  }
-  #gate.unlocked{display:none}
-  html.locked{overflow:hidden}
-  html.locked body > *:not(#gate){visibility:hidden}
-  #gate .gate-mark{
-    font-family:var(--display);font-weight:800;
-    font-size:clamp(20px,4vw,32px);letter-spacing:0.3em;
-  }
-  #gate .gate-mark .x{color:var(--ember)}
-  #gate .gate-note{
-    font-family:var(--mono);font-size:11px;letter-spacing:0.24em;
-    text-transform:uppercase;color:var(--ink-faint);
-  }
-  #gate form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  #gate input{
-    font-family:var(--mono);font-size:13px;letter-spacing:0.16em;
-    padding:14px 20px;width:min(260px,70vw);text-align:center;
-    background:transparent;border:1px solid var(--ink-faint);
-    color:var(--ink);
-  }
-  #gate input::placeholder{color:var(--ink-faint);letter-spacing:0.16em}
-  #gate input:focus{outline:1px solid var(--frost);outline-offset:2px;border-color:var(--frost)}
-  #gate .gate-error{font-family:var(--mono);font-size:11px;color:var(--ember);min-height:1.3em;letter-spacing:0.08em}
 
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -484,46 +456,23 @@
 <body>
 
 <!-- ============================================================
-     ACCESS GATE — password: WNTR2026
-     To change it, run this in a browser console with the new one:
-       crypto.subtle.digest('SHA-256', new TextEncoder().encode('NEWPASSWORD'))
-         .then(b => console.log([...new Uint8Array(b)]
-         .map(x => x.toString(16).padStart(2,'0')).join('')))
-     and paste the result over PASS_HASH below.
+     ACCESS GUARD — no prompt here.
+     The password is asked once at /treatments/, and unlocking it sets
+     the key this checks. Arriving with it, you walk straight in.
+     Arriving without it — a direct link, a new browser session — you
+     are sent to the front door to enter it, rather than the page being
+     simply open to anyone with the URL. Runs before the body paints,
+     so nothing of the treatment is on screen first.
      ============================================================ -->
-<div id="gate">
-  <div class="gate-mark">WNTR <span class="x">×</span> SHIRES YARD</div>
-  <p class="gate-note">Private treatment</p>
-  <form id="gate-form" autocomplete="off">
-    <input id="gate-input" type="password" placeholder="Password" aria-label="Password" autocomplete="off">
-    <button class="btn" type="submit">Enter</button>
-  </form>
-  <p class="gate-error" id="gate-error" role="alert"></p>
-</div>
-
 <script>
 (function(){
   var PASS_HASH = '6d5277d40e9832ff6b90bffffff28e73bfb4cb3a4c0bf9cb86e972fa329bbf9e';
-  var KEY = 'wntr-shires-access';
-  var root = document.documentElement, gate = document.getElementById('gate');
-  function remembered(){ try { return sessionStorage.getItem(KEY) === PASS_HASH; } catch(e){ return false; } }
-  function unlock(){ gate.classList.add('unlocked'); root.classList.remove('locked'); }
-  function hash(s){
-    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function(buf){
-      return [].slice.call(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
-    });
-  }
-  if(remembered()){ unlock(); } else { root.classList.add('locked'); }
-  document.getElementById('gate-form').addEventListener('submit', function(e){
-    e.preventDefault();
-    var input = document.getElementById('gate-input'), err = document.getElementById('gate-error');
-    hash(input.value.trim()).then(function(h){
-      if(h === PASS_HASH){ try{ sessionStorage.setItem(KEY,h); }catch(e){} unlock(); }
-      else { err.textContent = 'Not quite — try again.'; input.value=''; input.focus(); }
-    });
-  });
+  var ok = false;
+  try { ok = sessionStorage.getItem('iw-treatments-access') === PASS_HASH; } catch(e){}
+  if (!ok) { window.location.replace('/treatments/'); }
 })();
 </script>
+
 
 <canvas id="field" aria-hidden="true"></canvas>
 

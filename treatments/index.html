@@ -139,9 +139,93 @@
     @media (prefers-reduced-motion: reduce) {
       .tr-item, .corner a { transition: none; }
     }
+
+    /* ─── Access gate ────────────────────────────────────────────────
+       The whole Treatments section sits behind this now, not each
+       individual treatment — one door at the front. Unlocking sets a
+       key that the treatment pages themselves read, so nobody is asked
+       twice in the same visit. */
+    #gate {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--iw-bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1.4rem; padding: 1.5rem; text-align: center;
+    }
+    #gate.unlocked { display: none; }
+    html.locked { overflow: hidden; }
+    html.locked body > *:not(#gate) { visibility: hidden; }
+    #gate .gate-mark {
+      font-size: clamp(1.5rem, 4vw, 2.1rem);
+      font-weight: 500; letter-spacing: -0.01em;
+    }
+    #gate .gate-note { color: var(--iw-ink-faint); }
+    #gate form { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    #gate input {
+      font-family: var(--iw-mono); font-size: 0.85rem; letter-spacing: 0.12em;
+      padding: 0.85rem 1.2rem; width: min(240px, 70vw); text-align: center;
+      background: transparent; border: 1px solid var(--iw-ink); color: var(--iw-ink);
+    }
+    #gate input::placeholder { color: var(--iw-ink-faint); letter-spacing: 0.12em; }
+    #gate input:focus { outline: 2px solid var(--iw-accent); outline-offset: 2px; }
+    #gate button {
+      font-family: var(--iw-mono); font-size: 0.72rem; letter-spacing: 0.18em;
+      text-transform: uppercase; padding: 0.85rem 1.6rem; cursor: pointer;
+      background: var(--iw-ink); color: var(--iw-bg); border: 1px solid var(--iw-ink);
+      transition: background 0.22s ease, color 0.22s ease;
+    }
+    #gate button:hover { background: var(--iw-accent); border-color: var(--iw-accent); }
+    #gate .gate-error {
+      font-family: var(--iw-mono); font-size: 0.72rem;
+      color: var(--iw-accent); min-height: 1.3em;
+    }
   </style>
 </head>
 <body>
+
+  <!-- ============================================================
+       ACCESS GATE — password: WNTR2026
+       Guards the whole Treatments section. To change it, run this in a
+       browser console with the new password and paste the result over
+       PASS_HASH below — then do the same in every treatment's own
+       guard script (they compare against the same value):
+         crypto.subtle.digest('SHA-256', new TextEncoder().encode('NEWPASSWORD'))
+           .then(b => console.log([...new Uint8Array(b)]
+           .map(x => x.toString(16).padStart(2,'0')).join('')))
+       ============================================================ -->
+  <div id="gate">
+    <p class="gate-mark">Treatments</p>
+    <p class="gate-note mono">Private — password required</p>
+    <form id="gate-form" autocomplete="off">
+      <input id="gate-input" type="password" placeholder="Password" aria-label="Password" autocomplete="off">
+      <button type="submit">Enter</button>
+    </form>
+    <p class="gate-error mono" id="gate-error" role="alert"></p>
+  </div>
+
+  <script>
+  (function(){
+    var PASS_HASH = '6d5277d40e9832ff6b90bffffff28e73bfb4cb3a4c0bf9cb86e972fa329bbf9e';
+    var KEY = 'iw-treatments-access';
+    var root = document.documentElement, gate = document.getElementById('gate');
+    function remembered(){ try { return sessionStorage.getItem(KEY) === PASS_HASH; } catch(e){ return false; } }
+    function unlock(){ gate.classList.add('unlocked'); root.classList.remove('locked'); }
+    function hash(str){
+      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(buf){
+        return [].slice.call(new Uint8Array(buf)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+      });
+    }
+    if (remembered()) { unlock(); } else { root.classList.add('locked'); }
+    document.getElementById('gate-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      var input = document.getElementById('gate-input'), err = document.getElementById('gate-error');
+      hash(input.value.trim()).then(function(h){
+        if (h === PASS_HASH) { try { sessionStorage.setItem(KEY, h); } catch(e){} unlock(); }
+        else { err.textContent = 'Not quite — try again.'; input.value = ''; input.focus(); }
+      });
+    });
+  })();
+  </script>
 
   <div class="corner tl mono">
     <span>Treatments</span>
@@ -172,7 +256,7 @@
 
       </div>
 
-      <p class="tr-foot mono">Password required</p>
+      <p class="tr-foot mono">Access by arrangement</p>
 
     </div>
   </div>
