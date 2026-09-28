@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IAMWE × Shires Yard</title>
+<title>Wave Hello — IAMWE × Shires Yard</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light">
-<meta name="description" content="IAMWE × Shires Yard — treatment.">
-<meta property="og:title" content="IAMWE × Shires Yard">
+<meta name="description" content="Wave Hello — IAMWE × Shires Yard — treatment.">
+<meta property="og:title" content="Wave Hello — IAMWE × Shires Yard">
 <meta property="og:description" content="Treatment — private.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
@@ -130,23 +130,37 @@
   /* The mark is painted on, left to right, the way the wall inside
      receives it. */
   .hero-mark{
-    width:min(78vw,760px);height:auto;
+    width:min(62vw,520px);height:auto;
     clip-path:inset(0 100% 0 0);
     animation:paintOn 1.9s .45s cubic-bezier(.65,0,.25,1) forwards;
   }
-  h1.hero-title{
-    margin-top:clamp(26px,4.5vh,46px);
-    font-family:var(--display);font-weight:600;
-    font-size:clamp(28px,4.2vw,58px);line-height:1.04;letter-spacing:-0.015em;
-    max-width:17ch;text-wrap:balance;
-    opacity:0;animation:rise 1.1s 1.3s ease forwards;
+  .hero-presents{
+    margin-top:clamp(18px,3vh,30px);
+    font-family:var(--mono);font-size:11px;letter-spacing:0.32em;
+    text-transform:uppercase;color:var(--ink-faint);
+    opacity:0;animation:rise 1s 1.15s ease forwards;
+  }
+  /* The name of the piece, as big as the page allows — it's what people
+     will say to each other, so it gets the loudest type on the site. */
+  h1.hero-name{
+    margin-top:clamp(8px,1.5vh,16px);
+    font-family:var(--display);font-weight:800;
+    font-size:clamp(56px,11vw,168px);line-height:.9;letter-spacing:-0.035em;
+    opacity:0;animation:rise 1.2s 1.3s ease forwards;
+  }
+  .hero-title{
+    margin-top:clamp(18px,3vh,30px);
+    font-family:var(--display);font-weight:400;
+    font-size:clamp(19px,1.9vw,26px);line-height:1.2;
+    color:var(--ink-dim);max-width:30ch;text-wrap:balance;
+    opacity:0;animation:rise 1.1s 1.5s ease forwards;
   }
   .hero-meta{
     margin-top:clamp(24px,4vh,40px);
     display:flex;flex-wrap:wrap;justify-content:center;gap:10px 32px;
     font-family:var(--mono);font-size:12px;letter-spacing:0.16em;
     text-transform:uppercase;color:var(--ink-dim);
-    opacity:0;animation:rise 1.1s 1.55s ease forwards;
+    opacity:0;animation:rise 1.1s 1.7s ease forwards;
   }
   .hero-meta b{color:var(--red);font-weight:400}
   .hero > .hero-hint{
@@ -351,11 +365,23 @@
     font-family:var(--mono);font-size:12px;letter-spacing:0.26em;
     text-transform:uppercase;color:var(--ink);
   }
-  .close > .hint{
-    position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
-    font-family:var(--mono);font-size:10px;letter-spacing:0.28em;
-    text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;
+  /* The visualisation closes the page. It sits over the paint canvas,
+     so marks made around it look like they're spilling off the picture. */
+  .mockup{
+    width:100%;max-width:1400px;
+    margin-top:clamp(56px,10vh,110px);
   }
+  .mockup img{
+    width:100%;height:auto;background:var(--card);
+    box-shadow:0 30px 80px -40px rgba(20,20,20,.45);
+  }
+  .mockup figcaption{
+    display:flex;justify-content:space-between;gap:16px;
+    padding-top:12px;
+    font-family:var(--mono);font-size:10px;letter-spacing:0.2em;
+    text-transform:uppercase;color:var(--ink-faint);
+  }
+  .close .mockup.reveal{transition-delay:.1s}
 
   /* ---------- footer ---------- */
   footer{
@@ -377,7 +403,7 @@
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
     html{scroll-behavior:auto}
-    .hero-eyebrow,h1.hero-title,.hero-meta{opacity:1}
+    .hero-eyebrow,.hero-presents,h1.hero-name,.hero-title,.hero-meta{opacity:1}
     .hero-mark{clip-path:none}
     .reveal,figure.reveal img{opacity:1;transform:none}
   }
@@ -419,9 +445,11 @@
   <!-- HERO -->
   <header class="hero">
     <canvas class="paint" aria-hidden="true"></canvas>
-    <p class="hero-eyebrow">A treatment for Shires Yard &nbsp;·&nbsp; Bath</p>
+    <p class="hero-eyebrow">A treatment for Shires Yard, Bath</p>
     <img class="hero-mark" src="/IAMWE_LOGO_MARK.svg" width="760" height="203" alt="IAMWE">
-    <h1 class="hero-title">An installation you make with your hands.</h1>
+    <p class="hero-presents">presents</p>
+    <h1 class="hero-name">Wave Hello</h1>
+    <p class="hero-title">An installation you make with your hands.</p>
     <div class="hero-meta">
       <span><b>Christmas 2026</b></span>
       <span>Interactive</span>
@@ -731,15 +759,23 @@
     </h2>
     <p class="reveal">Because the best things happen when we play, experiment and create together.</p>
     <p class="sign reveal">See you inside.</p>
-    <span class="hint">Leave your mark</span>
+
+    <!-- The whole treatment in one frame: after all the references, this
+         is the answer to "what would it actually look like?" -->
+    <figure class="mockup reveal">
+      <img src="/treatments/iamwe-shires-yard/mockup-shopfront.jpg" width="1877" height="1061"
+           alt="Visualisation of the Shires Yard shopfront at dusk: through both ground-floor windows, a glowing curtained drum wrapped in giant glossy balloon forms, painted marks on the walls and decks on the left; colourful crate stools line the pavement outside"
+           loading="lazy" decoding="async">
+      <figcaption><span>Wave Hello at Shires Yard</span><span>Visualisation</span></figcaption>
+    </figure>
   </section>
 
 </main>
 
 <footer>
   <div>
-    <div class="fm">IAMWE <span class="x">×</span> SHIRES YARD</div>
-    <p class="sub">Make a mark · Bath · Christmas 2026</p>
+    <div class="fm">WAVE HELLO</div>
+    <p class="sub">IAMWE × Shires Yard · Bath · Christmas 2026</p>
   </div>
   <div class="credits">
     An iamwe installation<br>
