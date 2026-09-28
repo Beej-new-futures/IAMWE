@@ -418,7 +418,7 @@
 
   <!-- HERO -->
   <header class="hero">
-    <canvas class="paint" data-auto="1" aria-hidden="true"></canvas>
+    <canvas class="paint" aria-hidden="true"></canvas>
     <p class="hero-eyebrow">A treatment for Shires Yard &nbsp;·&nbsp; Bath</p>
     <img class="hero-mark" src="/IAMWE_LOGO_MARK.svg" width="760" height="203" alt="IAMWE">
     <h1 class="hero-title">An installation you make with your hands.</h1>
@@ -787,8 +787,10 @@
   /* ---------- paint ----------
      A pointer leaves a brush mark in the installation's colours; each
      stroke dries and fades over a few seconds, so the canvas never fills
-     up and nobody's mark covers the words for long. The hero also paints
-     on its own while nobody is touching it. */
+     up and nobody's mark covers the words for long. Nothing paints until
+     someone moves — the first mark is always the visitor's.
+     (Autopaint is still in the code below: add data-auto="1" to a
+     canvas to switch it back on.) */
   var COLOURS = ['#E2261C','#FF3D8B','#FFC400','#2A55FF','#12A866'];
   var LIFE = 4200;
 
