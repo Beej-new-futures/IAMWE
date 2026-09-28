@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAMWE × Shires Yard</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<meta name="description" content="IAMWE × Shires Yard — treatment.">
+<meta property="og:title" content="IAMWE × Shires Yard">
+<meta property="og:description" content="Treatment — private.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Instrument+Sans:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Gallery white, not screen white — the references in the deck are
+       almost all objects in pale rooms, so the page is the room they sit
+       in and the colour comes from the work. */
+    --paper:#F6F5F1;
+    --card:#EDEBE5;
+    --ink:#141414;
+    --ink-dim:rgba(20,20,20,0.64);
+    --ink-faint:rgba(20,20,20,0.40);
+    --hairline:rgba(20,20,20,0.13);
+
+    /* The installation's paint box. Each chapter takes one, and the
+       hero brush cycles through all of them. */
+    --red:#E2261C;
+    --pink:#FF3D8B;
+    --yellow:#FFC400;
+    --yellow-ink:#B98600;   /* yellow for type on paper — the pure one fails contrast */
+    --blue:#2A55FF;
+    --green:#12A866;
+    --accent:var(--red);
+
+    --display:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+    --body:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+    --mono:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+    --gut:clamp(20px,5vw,72px);
+    --max:1480px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--yellow);color:var(--ink)}
+  img{display:block;max-width:100%}
+  a{color:inherit}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--red);outline-offset:4px}
+
+  /* ---------- progress ---------- */
+  #progress{
+    position:fixed;top:0;left:0;height:2px;width:100%;z-index:30;
+    background:var(--accent-live,var(--red));
+    transform-origin:0 50%;transform:scaleX(0);
+    transition:background-color .5s ease;
+  }
+
+  /* ---------- nav ----------
+     Same metrics as the rest of the site and the WNTR treatment, so
+     moving between them nothing jumps. Solid ink on a paper scrim here
+     rather than difference-blend: the pictures are small enough on this
+     page that the bar is never fighting a bright frame. */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:20;
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:20px;
+    padding:22px var(--gut);
+    background:linear-gradient(to bottom,rgba(246,245,241,.94) 55%,rgba(246,245,241,0));
+  }
+  .wordmark{
+    font-family:var(--display);font-weight:800;
+    font-size:0.86rem;letter-spacing:0.28em;
+    text-decoration:none;white-space:nowrap;
+  }
+  .x{color:var(--red)}
+  .nav-right{display:flex;align-items:baseline;gap:1.8rem}
+  .nav-links{display:flex;gap:1.8rem}
+  .nav-links a{
+    font-family:var(--mono);font-size:0.86rem;letter-spacing:0.09em;
+    text-transform:uppercase;text-decoration:none;
+    color:var(--ink-dim);transition:color .22s ease;
+  }
+  .nav-links a:hover,.nav-links a:focus-visible{color:var(--red)}
+  .nav-close{
+    font-family:var(--mono);font-size:1.4rem;line-height:1;
+    text-decoration:none;color:var(--ink-dim);
+    align-self:center;padding-left:1.8rem;
+    border-left:1px solid var(--hairline);
+    transition:color .22s ease;
+  }
+  .nav-close:hover,.nav-close:focus-visible{color:var(--red)}
+  @media(max-width:760px){
+    .nav-links{display:none}
+    .nav-close{padding-left:0;border-left:0}
+  }
+
+  /* ---------- paint canvases ----------
+     The hero and the close each carry one: move over them and your hand
+     leaves a mark, which is the whole idea of the installation in one
+     gesture. Left alone, the hero paints itself. */
+  .paint{position:absolute;inset:0;width:100%;height:100%;z-index:0;touch-action:pan-y;opacity:.9}
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative;isolation:isolate;
+    min-height:100svh;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:140px var(--gut) 110px;
+    overflow:hidden;
+  }
+  .hero > *:not(.paint){position:relative;z-index:1;pointer-events:none}
+  .hero-eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.3em;
+    text-transform:uppercase;color:var(--ink-dim);
+    margin-bottom:clamp(26px,5vh,50px);
+    opacity:0;animation:rise 1s .15s ease forwards;
+  }
+  /* The mark is painted on, left to right, the way the wall inside
+     receives it. */
+  .hero-mark{
+    width:min(78vw,760px);height:auto;
+    clip-path:inset(0 100% 0 0);
+    animation:paintOn 1.9s .45s cubic-bezier(.65,0,.25,1) forwards;
+  }
+  h1.hero-title{
+    margin-top:clamp(26px,4.5vh,46px);
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(28px,4.2vw,58px);line-height:1.04;letter-spacing:-0.015em;
+    max-width:17ch;text-wrap:balance;
+    opacity:0;animation:rise 1.1s 1.3s ease forwards;
+  }
+  .hero-meta{
+    margin-top:clamp(24px,4vh,40px);
+    display:flex;flex-wrap:wrap;justify-content:center;gap:10px 32px;
+    font-family:var(--mono);font-size:12px;letter-spacing:0.16em;
+    text-transform:uppercase;color:var(--ink-dim);
+    opacity:0;animation:rise 1.1s 1.55s ease forwards;
+  }
+  .hero-meta b{color:var(--red);font-weight:400}
+  .hero > .hero-hint{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:34px;
+    font-family:var(--mono);font-size:10px;letter-spacing:0.28em;
+    text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;
+    animation:pulse 3s 2.2s ease infinite;opacity:.3;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes paintOn{to{clip-path:inset(0 0 0 0)}}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:.85}}
+
+  /* ---------- reveal on scroll ----------
+     Everything below the fold arrives as it's reached. Figures also wait
+     for their own pixels, so nothing fades in as an empty box. */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .9s ease,transform .9s cubic-bezier(.16,1,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+  figure.reveal img{opacity:0;transition:opacity .8s ease}
+  figure.reveal.in img.loaded{opacity:1}
+
+  /* ---------- section shell ---------- */
+  .section{padding:clamp(80px,12vh,150px) var(--gut);max-width:var(--max);margin:0 auto}
+  .panel-header{
+    display:flex;align-items:baseline;justify-content:space-between;gap:18px;
+    font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:0.26em;
+    text-transform:uppercase;color:var(--ink-faint);
+    padding-bottom:16px;margin-bottom:clamp(38px,6vh,70px);
+    border-bottom:1px solid var(--hairline);
+  }
+  .panel-header .n{color:var(--ink-dim)}
+
+  /* ---------- the idea ---------- */
+  .idea-lead{
+    display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+    gap:clamp(26px,5vw,90px);align-items:start;
+  }
+  @media(max-width:880px){.idea-lead{grid-template-columns:1fr}}
+  .idea-lead h2{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(34px,4.6vw,66px);line-height:1.02;letter-spacing:-0.02em;
+    text-wrap:balance;
+  }
+  .idea-lead h2 em{font-style:normal;color:var(--red)}
+  .idea-lead p{color:var(--ink-dim);font-size:clamp(16px,1.25vw,19px);max-width:52ch}
+  .idea-lead p + p{margin-top:1em}
+
+  .steps{
+    list-style:none;
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:clamp(20px,2.4vw,36px);
+    margin-top:clamp(60px,9vh,110px);
+    counter-reset:step;
+  }
+  @media(max-width:980px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:540px){.steps{grid-template-columns:1fr}}
+  .step{border-top:2px solid var(--c);padding-top:18px}
+  .step:nth-child(1){--c:var(--red)}
+  .step:nth-child(2){--c:var(--pink)}
+  .step:nth-child(3){--c:var(--blue)}
+  .step:nth-child(4){--c:var(--green)}
+  .step .k{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.24em;
+    text-transform:uppercase;color:var(--c);display:block;margin-bottom:12px;
+  }
+  .step h3{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(22px,1.9vw,28px);line-height:1.1;margin-bottom:10px;
+  }
+  .step p{color:var(--ink-dim);font-size:16px;max-width:34ch}
+  .reveal.step:nth-child(2){transition-delay:.08s}
+  .reveal.step:nth-child(3){transition-delay:.16s}
+  .reveal.step:nth-child(4){transition-delay:.24s}
+
+  /* ---------- interlude ---------- */
+  .interlude{padding:clamp(90px,18vh,190px) var(--gut);text-align:center}
+  .interlude p{
+    font-family:var(--display);font-weight:400;
+    font-size:clamp(26px,3.6vw,52px);line-height:1.18;letter-spacing:-0.01em;
+    max-width:22ch;margin:0 auto;text-wrap:balance;
+  }
+  .interlude .dim{color:var(--ink-faint)}
+
+  /* ---------- chapters ----------
+     Words on one side held still, pictures moving past on the other —
+     and the sides swap every chapter, so the page walks rather than
+     stacks. */
+  .chapter{
+    display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);
+    gap:clamp(30px,5vw,96px);align-items:start;
+    padding:clamp(56px,9vh,110px) 0;
+    border-top:1px solid var(--hairline);
+  }
+  .chapter:first-of-type{border-top:0;padding-top:0}
+  .chapter.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+  .chapter.flip .ch-text{order:2}
+  .ch-1{--accent:var(--red)}
+  .ch-2{--accent:var(--pink)}
+  .ch-3{--accent:var(--yellow-ink)}
+  .ch-4{--accent:var(--blue)}
+  .ch-5{--accent:var(--green)}
+
+  .ch-text{position:sticky;top:110px}
+  .ch-num{
+    display:flex;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:11px;letter-spacing:0.26em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:18px;
+  }
+  .ch-num::after{content:"";flex:1;height:1px;background:var(--accent);opacity:.4}
+  .ch-text h2{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(34px,4vw,58px);line-height:1;letter-spacing:-0.015em;
+    margin-bottom:10px;
+  }
+  .ch-text .sub{
+    font-family:var(--display);font-weight:400;
+    font-size:clamp(19px,1.6vw,24px);line-height:1.25;
+    color:var(--accent);margin-bottom:22px;text-wrap:balance;
+  }
+  .ch-text p{color:var(--ink-dim);font-size:clamp(16px,1.2vw,18px);max-width:46ch}
+  .ch-text p + p{margin-top:.9em}
+
+  @media(max-width:900px){
+    .chapter,.chapter.flip{grid-template-columns:1fr}
+    .chapter.flip .ch-text{order:0}
+    .ch-text{position:static}
+  }
+
+  /* The deck's references at their own proportions — a mood board is
+     no place to crop someone else's picture into a tile. */
+  .ch-media figure{margin:0}
+  .ch-lead{margin-bottom:clamp(12px,1.4vw,20px)}
+  .ch-lead img{width:100%;height:auto;background:var(--card)}
+  .mosaic{columns:2;column-gap:clamp(12px,1.4vw,20px)}
+  .mosaic figure{break-inside:avoid;margin-bottom:clamp(12px,1.4vw,20px)}
+  .mosaic img{width:100%;height:auto;background:var(--card)}
+  @media(max-width:460px){.mosaic{columns:1}}
+  .ch-media figcaption{
+    font-family:var(--mono);font-size:10px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--ink-faint);
+    padding-top:8px;
+  }
+  .ch-media figure:hover figcaption{color:var(--accent)}
+  .ch-media .ref-note{
+    font-family:var(--mono);font-size:10px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--ink-faint);margin-top:6px;
+  }
+
+  /* ---------- the space ---------- */
+  .space{
+    display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+    gap:clamp(30px,5vw,90px);align-items:center;
+  }
+  @media(max-width:880px){.space{grid-template-columns:1fr}}
+  .plan{background:#fff;border:1px solid var(--hairline);padding:clamp(14px,2vw,28px)}
+  .plan img{width:100%;height:auto;mix-blend-mode:multiply}
+  .plan figcaption{
+    font-family:var(--mono);font-size:10px;letter-spacing:0.18em;
+    text-transform:uppercase;color:var(--ink-faint);padding-top:12px;
+  }
+  .space h2{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(30px,3.6vw,50px);line-height:1.04;letter-spacing:-0.015em;
+    margin-bottom:18px;text-wrap:balance;
+  }
+  .space > div > p{color:var(--ink-dim);max-width:46ch;margin-bottom:28px}
+  .facts{border-top:1px solid var(--hairline)}
+  .fact{
+    display:grid;grid-template-columns:150px minmax(0,1fr);gap:20px;
+    padding:16px 0;border-bottom:1px solid var(--hairline);
+  }
+  .fact .k{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.2em;
+    text-transform:uppercase;color:var(--ink-faint);padding-top:4px;
+  }
+  .fact .v{color:var(--ink)}
+  .fact .v span{color:var(--ink-dim)}
+  @media(max-width:520px){.fact{grid-template-columns:1fr;gap:4px}}
+
+  /* ---------- close ---------- */
+  .close{
+    position:relative;isolation:isolate;overflow:hidden;
+    min-height:92svh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:clamp(100px,16vh,170px) var(--gut);
+    border-top:1px solid var(--hairline);
+  }
+  .close > *:not(.paint){position:relative;z-index:1;pointer-events:none}
+  .close h2{
+    font-family:var(--display);font-weight:800;
+    font-size:clamp(46px,8.4vw,128px);line-height:.94;letter-spacing:-0.025em;
+  }
+  .close h2 span{display:block}
+  .close h2 span:nth-child(2){color:var(--red)}
+  .close .reveal:nth-child(2){transition-delay:.12s}
+  .close p{
+    margin-top:clamp(28px,5vh,48px);
+    font-size:clamp(17px,1.4vw,21px);color:var(--ink-dim);
+    max-width:40ch;text-wrap:balance;
+  }
+  .close .sign{
+    margin-top:clamp(22px,4vh,36px);
+    font-family:var(--mono);font-size:12px;letter-spacing:0.26em;
+    text-transform:uppercase;color:var(--ink);
+  }
+  .close > .hint{
+    position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+    font-family:var(--mono);font-size:10px;letter-spacing:0.28em;
+    text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    padding:clamp(46px,7vh,76px) var(--gut) 44px;
+    border-top:1px solid var(--hairline);
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:26px;flex-wrap:wrap;max-width:var(--max);margin:0 auto;
+  }
+  footer .fm{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:0.28em}
+  footer .sub{
+    font-family:var(--mono);font-size:10px;letter-spacing:0.2em;
+    color:var(--ink-faint);margin-top:12px;text-transform:uppercase;
+  }
+  footer .credits{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.1em;
+    color:var(--ink-faint);line-height:2;text-align:right;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    html{scroll-behavior:auto}
+    .hero-eyebrow,h1.hero-title,.hero-meta{opacity:1}
+    .hero-mark{clip-path:none}
+    .reveal,figure.reveal img{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ACCESS GUARD — no prompt here.
+     Same as WNTR: the password is asked once at /treatments/, and this
+     only checks the key that sets. Arriving without it, you are sent to
+     the front door. Runs before the body paints.
+     ============================================================ -->
+<script>
+(function(){
+  var PASS_HASH = '6d5277d40e9832ff6b90bffffff28e73bfb4cb3a4c0bf9cb86e972fa329bbf9e';
+  var ok = false;
+  try { ok = sessionStorage.getItem('iw-treatments-access') === PASS_HASH; } catch(e){}
+  if (!ok) { window.location.replace('/treatments/'); }
+})();
+</script>
+
+<div id="progress" aria-hidden="true"></div>
+
+<nav>
+  <a class="wordmark" href="#top">IAMWE <span class="x">×</span> SHIRES YARD</a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="#idea">The Idea</a>
+      <a href="#installation">The Installation</a>
+      <a href="#space">The Space</a>
+    </div>
+    <a class="nav-close" href="/" aria-label="Close this treatment and return to iamwe" title="Back to iamwe">&times;</a>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- HERO -->
+  <header class="hero">
+    <canvas class="paint" data-auto="1" aria-hidden="true"></canvas>
+    <p class="hero-eyebrow">A treatment for Shires Yard &nbsp;·&nbsp; Bath</p>
+    <img class="hero-mark" src="/IAMWE_LOGO_MARK.svg" width="760" height="203" alt="IAMWE">
+    <h1 class="hero-title">An installation you make with your hands.</h1>
+    <div class="hero-meta">
+      <span><b>Christmas 2026</b></span>
+      <span>Interactive</span>
+      <span>Made together</span>
+      <span>Printed to take home</span>
+    </div>
+    <span class="hero-hint">Move across the page — make a mark</span>
+  </header>
+
+
+  <!-- THE IDEA -->
+  <section class="section" id="idea">
+    <h2 class="panel-header reveal"><span>The Idea</span><span class="n">/ 01</span></h2>
+
+    <div class="idea-lead">
+      <h2 class="reveal">Make a mark with your hand. <em>Leave with a work of art.</em></h2>
+      <div>
+        <p class="reveal">IAMWE is an interactive installation that brings people together
+        through creativity, movement and human touch.</p>
+        <p class="reveal">So much of our time with technology is spent looking down at a
+        screen. IAMWE uses technology to do the opposite — taking you off your phone and
+        back into the moment, with nothing more than your hands, your imagination and the
+        people around you.</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li class="step reveal">
+        <span class="k">01</span>
+        <h3>Make a shape</h3>
+        <p>Stand in front of the installation and shape your hand. Your gesture becomes a painted mark on the wall.</p>
+      </li>
+      <li class="step reveal">
+        <span class="k">02</span>
+        <h3>Add a symbol</h3>
+        <p>Choose a Christmas symbol and wave it over what you've made.</p>
+      </li>
+      <li class="step reveal">
+        <span class="k">03</span>
+        <h3>Build it together</h3>
+        <p>Gestures and images layer and merge, one person after the next, into a single artwork.</p>
+      </li>
+      <li class="step reveal">
+        <span class="k">04</span>
+        <h3>Take it home</h3>
+        <p>The finished piece is printed — a bespoke IAMWE print, made by you. A memory of a shared moment.</p>
+      </li>
+    </ol>
+  </section>
+
+  <div class="interlude">
+    <p class="reveal">Everything else happens through a screen.<br><span class="dim">Nothing here does.</span></p>
+  </div>
+
+
+  <!-- THE INSTALLATION -->
+  <section class="section" id="installation">
+    <h2 class="panel-header reveal"><span>The Installation</span><span class="n">/ 02 — references, not final design</span></h2>
+
+    <!-- I · STRUCTURE -->
+    <article class="chapter ch-1">
+      <div class="ch-text">
+        <p class="ch-num reveal">I</p>
+        <h2 class="reveal">Structure</h2>
+        <p class="sub reveal">A sculpture at the centre of the room.</p>
+        <p class="reveal">Suspended from the ceiling, the installation hangs at the heart of
+        the space as one bold, sculptural form — made to be seen from every side. Visitors
+        walk all the way around it.</p>
+        <p class="reveal">The structure is an artwork in its own right. It shapes the room,
+        frames the interactive piece inside, and lets movement and light spill out to the
+        street, drawing people in from outside.</p>
+      </div>
+      <div class="ch-media">
+        <figure class="ch-lead reveal">
+          <img src="/treatments/iamwe-shires-yard/structure-drum-amber.jpg" width="1200" height="901"
+               alt="A circular curtained enclosure glowing amber from within, ringed with lights" loading="lazy" decoding="async">
+          <figcaption>Lit from within</figcaption>
+        </figure>
+        <div class="mosaic">
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/structure-drum-white.jpg" width="735" height="490"
+                 alt="A figure walking into a tall drum of sheer white curtain" loading="lazy" decoding="async">
+            <figcaption>Walk-in drum</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/structure-booth.jpg" width="1200" height="1500"
+                 alt="A metal booth with a porthole window and a white curtain for a door" loading="lazy" decoding="async">
+            <figcaption>Booth &amp; curtain</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/structure-drape-gold.jpg" width="650" height="434"
+                 alt="A form draped in gold fabric standing in a white gallery" loading="lazy" decoding="async">
+            <figcaption>Draped form</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/structure-curtain-yellow.jpg" width="547" height="407"
+                 alt="A yellow curtained cube suspended from the ceiling over a lit floor" loading="lazy" decoding="async">
+            <figcaption>Suspended from above</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/structure-red-block.jpg" width="1038" height="1017"
+                 alt="A bright red rectangular block standing alone in a desert at dusk" loading="lazy" decoding="async">
+            <figcaption>One bold form</figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+
+    <!-- II · PLAYFUL LAYER -->
+    <article class="chapter ch-2 flip">
+      <div class="ch-text">
+        <p class="ch-num reveal">II</p>
+        <h2 class="reveal">Playful Layer</h2>
+        <p class="sub reveal">One glossy, festive skin over everything.</p>
+        <p class="reveal">A final 3D layer wraps the whole installation, pulling every
+        element together so it reads as one complete sculpture.</p>
+        <p class="reveal">Think of the inflated, high-gloss forms of Jeff Koons, given a
+        Christmas twist — oversized, colourful and slightly surreal.</p>
+      </div>
+      <div class="ch-media">
+        <figure class="ch-lead reveal">
+          <img src="/treatments/iamwe-shires-yard/playful-colour-tunnel.jpg" width="1200" height="900"
+               alt="Visitors walking through a tunnel of thousands of coloured strands" loading="lazy" decoding="async">
+          <figcaption>Walk through colour</figcaption>
+        </figure>
+        <div class="mosaic">
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-knotted-tubes.jpg" width="900" height="1350"
+                 alt="Huge knotted red tubes pouring down a concrete wall" loading="lazy" decoding="async">
+            <figcaption>Knotted &amp; oversized</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-balloon-knot.jpg" width="1069" height="1602"
+                 alt="A glossy tangle of multicoloured balloon forms on a white plinth" loading="lazy" decoding="async">
+            <figcaption>High gloss</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-colour-burst.jpg" width="902" height="730"
+                 alt="A giant burst of multicoloured balloons in a vaulted hall" loading="lazy" decoding="async">
+            <figcaption>Burst</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-chrome-ceiling.jpg" width="804" height="1200"
+                 alt="Hundreds of silver inflatables clustered across a ceiling" loading="lazy" decoding="async">
+            <figcaption>Chrome overhead</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-pink-tubes.jpg" width="400" height="600"
+                 alt="Walls of stacked pink and orange tubes forming a narrow passage" loading="lazy" decoding="async">
+            <figcaption>Stacked colour</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/playful-chrome-wall.jpg" width="675" height="1200"
+                 alt="Silver inflated rings mounted across a white wall" loading="lazy" decoding="async">
+            <figcaption>Inflated chrome</figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+
+    <!-- III · BESPOKE SEATING -->
+    <article class="chapter ch-3">
+      <div class="ch-text">
+        <p class="ch-num reveal">III</p>
+        <h2 class="reveal">Bespoke Seating</h2>
+        <p class="sub reveal">Somewhere to pause, watch and join in.</p>
+        <p class="reveal">Around the edges of the installation, playful seating gives
+        people places to stop. An everyday object — a simple crate — becomes something
+        unexpected: colourful and sculptural.</p>
+        <p class="reveal">The pieces can spill out beyond the unit too, so the yard outside
+        looks busy before you've even stepped in.</p>
+      </div>
+      <div class="ch-media">
+        <figure class="ch-lead reveal">
+          <img src="/treatments/iamwe-shires-yard/seating-crates.jpg" width="700" height="438"
+               alt="A bench made from a row of coloured milk crates with round cushioned tops" loading="lazy" decoding="async">
+          <figcaption>Crates, made into a bench</figcaption>
+        </figure>
+        <div class="mosaic">
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/seating-crate-stools.jpg" width="1000" height="1000"
+                 alt="Two black crates topped with wooden seats on a brick yard" loading="lazy" decoding="async">
+            <figcaption>Crate stools, outside</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/seating-painted-chairs.jpg" width="736" height="877"
+                 alt="Chunky translucent chairs in bright colours, hand-lettered" loading="lazy" decoding="async">
+            <figcaption>Colour &amp; hand-lettering</figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+
+    <!-- IV · SIGNAGE & GRAPHICS -->
+    <article class="chapter ch-4 flip">
+      <div class="ch-text">
+        <p class="ch-num reveal">IV</p>
+        <h2 class="reveal">Signage &amp; Graphics</h2>
+        <p class="sub reveal">The marks people make become the language of the space.</p>
+        <p class="reveal">Vinyl and graphics tie everything together in one bold, carefully
+        curated visual language. The shapes and symbols made inside the installation return
+        as a recurring device — across the windows, the walls, the seating — a thread between
+        the structure and the artwork growing within it.</p>
+        <p class="reveal">The same graphics explain the experience, playfully, guiding
+        people through what to do without ever feeling like instructions. Less signage; more
+        part of the artwork — bold, engaging and instantly recognisable.</p>
+      </div>
+      <div class="ch-media">
+        <figure class="ch-lead reveal">
+          <img src="/treatments/iamwe-shires-yard/signage-shopfront.jpg" width="1200" height="675"
+               alt="A shopfront window painted over with bold hand-drawn black lettering" loading="lazy" decoding="async">
+          <figcaption>Marks on the glass</figcaption>
+        </figure>
+        <div class="mosaic">
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/signage-inflatable-letters.jpg" width="1200" height="1600"
+                 alt="Giant inflatable letters and doodled symbols against a concrete building" loading="lazy" decoding="async">
+            <figcaption>Symbols at scale</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/signage-window-text.jpg" width="640" height="755"
+                 alt="A shop window covered in flowing white vinyl text" loading="lazy" decoding="async">
+            <figcaption>Window vinyl</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/signage-arrow.jpg" width="736" height="1101"
+                 alt="A dark corridor with a single white arrow painted on the floor" loading="lazy" decoding="async">
+            <figcaption>Wayfinding, simply</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/signage-colour-wall.jpg" width="611" height="797"
+                 alt="A wall of layered, colourful cut-out shapes" loading="lazy" decoding="async">
+            <figcaption>Shapes as a system</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/signage-papered-window.jpg" width="735" height="577"
+                 alt="A shopfront veiled in translucent sheeting printed with text" loading="lazy" decoding="async">
+            <figcaption>Veiled shopfront</figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+
+    <!-- V · MUSIC & PRINTS -->
+    <article class="chapter ch-5">
+      <div class="ch-text">
+        <p class="ch-num reveal">V</p>
+        <h2 class="reveal">Music &amp; Prints</h2>
+        <p class="sub reveal">Somewhere to stay a while.</p>
+        <p class="reveal">A record deck gives the room a relaxed soundtrack and a natural
+        social energy. Curated vinyl sessions and guest DJs change its character through the
+        day — and in the evenings it becomes somewhere to hang out, have a drink and play with
+        the installation at your own pace.</p>
+        <p class="reveal">More than a retail installation: somewhere people want to spend
+        time, meet others and make something together — then leave with the print.</p>
+      </div>
+      <div class="ch-media">
+        <div class="mosaic">
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/music-decks.jpg" width="1199" height="1740"
+                 alt="Turntables and a mixer on a steel mesh plinth" loading="lazy" decoding="async">
+            <figcaption>Decks on a raw plinth</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="/treatments/iamwe-shires-yard/music-prints.jpg" width="1076" height="1345"
+                 alt="Stacks of prints resting on a low shelf of breeze blocks" loading="lazy" decoding="async">
+            <figcaption>Prints, ready to collect</figcaption>
+          </figure>
+        </div>
+      </div>
+    </article>
+  </section>
+
+
+  <!-- THE SPACE -->
+  <section class="section" id="space">
+    <h2 class="panel-header reveal"><span>The Space</span><span class="n">/ 03</span></h2>
+    <div class="space">
+      <figure class="plan reveal">
+        <img src="/treatments/iamwe-shires-yard/space-unit-9-plan.png" width="1400" height="1265"
+             alt="Floor plan of Unit 9, 6.12 by 9.07 metres, with the front entrance at the bottom" loading="lazy" decoding="async">
+        <figcaption>Unit 9 — plan, not to scale</figcaption>
+      </figure>
+      <div>
+        <h2 class="reveal">A small room with one big thing in the middle of it.</h2>
+        <p class="reveal">Unit 9 is compact enough that the installation fills it, and
+        visible enough from the yard that the light and movement inside do the job of a
+        shop window.</p>
+        <div class="facts reveal">
+          <div class="fact"><div class="k">Unit</div><div class="v">Unit 9, Milsom Place <span>— Milsom Street, Bath BA1 1DN</span></div></div>
+          <div class="fact"><div class="k">Floor area</div><div class="v">56.48 m² <span>/ 608 sq ft</span></div></div>
+          <div class="fact"><div class="k">Footprint</div><div class="v">6.12 × 9.07 m</div></div>
+          <div class="fact"><div class="k">Season</div><div class="v">Christmas 2026</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- CLOSE -->
+  <section class="close">
+    <canvas class="paint" aria-hidden="true"></canvas>
+    <h2>
+      <span class="reveal">Come in.</span>
+      <span class="reveal">Make something.</span>
+      <span class="reveal">Leave a little magic behind.</span>
+    </h2>
+    <p class="reveal">Because the best things happen when we play, experiment and create together.</p>
+    <p class="sign reveal">See you inside.</p>
+    <span class="hint">Leave your mark</span>
+  </section>
+
+</main>
+
+<footer>
+  <div>
+    <div class="fm">IAMWE <span class="x">×</span> SHIRES YARD</div>
+    <p class="sub">Make a mark · Bath · Christmas 2026</p>
+  </div>
+  <div class="credits">
+    An iamwe installation<br>
+    Treatment — private<br>
+    © iamwe 2026
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- reveal on scroll ---------- */
+  var items = document.querySelectorAll('.reveal');
+  document.querySelectorAll('figure.reveal img').forEach(function(img){
+    if (img.complete && img.naturalWidth) img.classList.add('loaded');
+    else img.addEventListener('load', function(){ img.classList.add('loaded'); }, {once:true});
+  });
+  if ('IntersectionObserver' in window && !reduce){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:0.12, rootMargin:'0px 0px -6% 0px'});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+    document.querySelectorAll('figure.reveal img').forEach(function(i){ i.classList.add('loaded'); });
+  }
+
+  /* ---------- progress bar, tinted by chapter ---------- */
+  var bar = document.getElementById('progress');
+  var chapters = [].slice.call(document.querySelectorAll('.chapter'));
+  function onScroll(){
+    var max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(scrollY / max, 1) : 0) + ')';
+    var c = null;
+    chapters.forEach(function(ch){ if (ch.getBoundingClientRect().top < innerHeight * 0.5) c = ch; });
+    bar.style.setProperty('--accent-live', c ? getComputedStyle(c).getPropertyValue('--accent') : 'var(--red)');
+  }
+  addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  if (reduce) return;
+
+  /* ---------- paint ----------
+     A pointer leaves a brush mark in the installation's colours; each
+     stroke dries and fades over a few seconds, so the canvas never fills
+     up and nobody's mark covers the words for long. The hero also paints
+     on its own while nobody is touching it. */
+  var COLOURS = ['#E2261C','#FF3D8B','#FFC400','#2A55FF','#12A866'];
+  var LIFE = 4200;
+
+  document.querySelectorAll('canvas.paint').forEach(function(canvas, idx){
+    var host = canvas.parentElement, ctx = canvas.getContext('2d');
+    var W, H, dpr, strokes = [], cur = null, colourIdx = idx * 2;
+    var visible = false, running = false, lastInput = -1e9, auto = canvas.dataset.auto === '1';
+    var autoT = Math.random() * 100, autoStroke = null;
+
+    function resize(){
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      var r = host.getBoundingClientRect();
+      W = canvas.width = Math.round(r.width * dpr);
+      H = canvas.height = Math.round(r.height * dpr);
+    }
+    addEventListener('resize', resize); resize();
+
+    function begin(){
+      cur = { c: COLOURS[colourIdx++ % COLOURS.length], pts: [] };
+      strokes.push(cur);
+    }
+    function add(s, x, y){
+      var now = performance.now(), p = s.pts[s.pts.length - 1];
+      if (p){
+        var d = Math.hypot(x - p.x, y - p.y);
+        if (d < 2 * dpr) return;
+        var w = Math.max(6, Math.min(34, 40 - d / dpr * 0.9)) * dpr;
+        s.pts.push({x:x, y:y, t:now, w: p.w * 0.6 + w * 0.4});
+      } else {
+        s.pts.push({x:x, y:y, t:now, w:14 * dpr});
+      }
+      if (s.pts.length > 260) s.pts.shift();
+    }
+
+    function local(e){
+      var r = canvas.getBoundingClientRect();
+      return { x:(e.clientX - r.left) * dpr, y:(e.clientY - r.top) * dpr };
+    }
+    var moveTimer;
+    host.addEventListener('pointermove', function(e){
+      lastInput = performance.now(); autoStroke = null;
+      if (!cur) begin();
+      var p = local(e); add(cur, p.x, p.y);
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(function(){ cur = null; }, 180);
+      kick();
+    });
+    host.addEventListener('pointerleave', function(){ cur = null; });
+
+    function draw(now){
+      ctx.clearRect(0, 0, W, H);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (var i = strokes.length - 1; i >= 0; i--){
+        var s = strokes[i], pts = s.pts;
+        while (pts.length && now - pts[0].t > LIFE) pts.shift();
+        if (!pts.length){ if (s !== cur && s !== autoStroke) strokes.splice(i, 1); continue; }
+        /* Solid paint, no alpha — overlapping round joins would show as
+           beads. Instead the tail dries back to nothing: each point
+           thins with age until the stroke has drawn itself away. */
+        ctx.strokeStyle = s.c;
+        for (var j = 1; j < pts.length; j++){
+          var a = pts[j - 1], b = pts[j];
+          var age = Math.min(1, (now - b.t) / LIFE);
+          var w = b.w * (1 - age * age);
+          if (w < 0.5) continue;
+          ctx.lineWidth = w;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+      }
+    }
+
+    function autopaint(now){
+      if (!auto || now - lastInput < 2600) return;
+      if (!autoStroke || autoStroke.pts.length > 150){
+        autoStroke = { c: COLOURS[colourIdx++ % COLOURS.length], pts: [] };
+        strokes.push(autoStroke);
+        autoT += 7.3;
+      }
+      autoT += 0.011;
+      var x = W * (0.5 + 0.38 * Math.sin(autoT * 1.3) * Math.cos(autoT * 0.37));
+      var y = H * (0.5 + 0.32 * Math.sin(autoT * 0.9 + 1.1));
+      add(autoStroke, x, y);
+    }
+
+    function loop(now){
+      autopaint(now);
+      draw(now);
+      var alive = strokes.some(function(s){ return s.pts.length; });
+      if (visible && (alive || auto)) requestAnimationFrame(loop);
+      else running = false;
+    }
+    function kick(){ if (!running && visible){ running = true; requestAnimationFrame(loop); } }
+
+    new IntersectionObserver(function(es){
+      visible = es[0].isIntersecting;
+      if (visible) kick();
+    }).observe(host);
+  });
+})();
+</script>
+
+</body>
+</html>
