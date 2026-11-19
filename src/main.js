@@ -264,6 +264,15 @@ const objects = []
 const MODEL_TARGET_SIZE = 6
 const loader = new GLTFLoader()
 
+// The neon squiggles share BLOB_02's iridescent shader, each pushed round
+// the colour wheel: BLOB_02 sits at 0 (pink/violet), these take the rest.
+// Shapes are random squirts: an emitter wandering in 3D with the odd curl.
+const SQUIGGLE_HUES = {
+  'SQUIGGLE_01.glb': 0.4,  // red / orange / yellow
+  'SQUIGGLE_02.glb': 0.6,  // lime / green
+  'SQUIGGLE_03.glb': 0.8,  // cyan / electric blue
+}
+
 function loadModel(path) {
   loader.load(path, (gltf) => {
     const model = gltf.scene
@@ -271,8 +280,10 @@ function loadModel(path) {
       if (!child.isMesh) return
       child.castShadow = true
       child.receiveShadow = true
-      if (path.includes('BLOB_02.glb')) {
+      const squiggle = Object.keys(SQUIGGLE_HUES).find((k) => path.includes(k))
+      if (path.includes('BLOB_02.glb') || squiggle) {
         child.material = blobMaterial.clone()
+        if (squiggle) child.material.uniforms.uHueOffset.value = SQUIGGLE_HUES[squiggle]
       } else if (path.includes('IAMWE_PICTURE_ONE.glb')) {
         const matName = child.material ? child.material.name : ''
         if (matName === 'Mat' || matName === 'Mat.1') {
