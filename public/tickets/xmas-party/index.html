@@ -6,144 +6,117 @@
 <title>IAMWE Xmas Party — Friday 18 December · Communa, Frome</title>
 <meta name="description" content="IAMWE Xmas Party — Friday 18 December at Communa, Frome. Early bird tickets £20.">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0d0d0d">
+<meta name="theme-color" content="#000000">
 <meta property="og:title" content="IAMWE Xmas Party">
 <meta property="og:description" content="Friday 18 December · Communa, Frome · Early bird £20">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://iamwe.uk/tickets/xmas-party/share.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Instrument+Sans:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/tickets-kit/tickets.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  /* This film is shot on pure black and framed 3:4, so the page goes
-     black to match and the film is shown whole (contain), never
-     cropped: cover would cut the cookies off on phones and desktops. */
-  :root { --ink: #000; --ink-2: #0c0c0c; }
-  .stage video, .stage .still { object-fit: contain; }
-  .stage::after { background: linear-gradient(to bottom, rgba(0,0,0,.5), transparent 14%, transparent 86%, rgba(0,0,0,.6)); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000; color: #f6f5f1; height: 100%; }
+  body { overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  /* ─── Corner nav — same placement and size as the rest of the site ─── */
+  .corner {
+    position: fixed; z-index: 50; top: 1.6rem;
+    display: flex; gap: 1.8rem; align-items: baseline;
+    font-family: 'Space Mono', ui-monospace, Menlo, monospace;
+    font-size: 0.86rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: #fff; mix-blend-mode: difference;
+  }
+  .corner.tl { left: 1.8rem; }
+  .corner.tr { right: 1.8rem; }
+  .corner a { color: inherit; text-decoration: none; transition: opacity .2s ease; }
+  .corner a:hover { opacity: .6; }
+  .corner img { height: 0.95rem; width: auto; display: block; filter: invert(1); }
+  @media (max-width: 620px) {
+    .corner { top: 1.1rem; font-size: 0.72rem; }
+    .corner.tl { left: 1.1rem; } .corner.tr { right: 1.1rem; }
+  }
+
+  /* ─── The film ─────────────────────────────────────────────────────
+     One screen. The film loops on black, shown whole (it's 3:4, so
+     cropping to fill would cut the cookies off on phones and desktops). */
+  .stage { position: fixed; inset: 0; background: #000; }
+  .stage video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+
+  /* ─── BUY TICKETS ──────────────────────────────────────────────────
+     Two layers in the same spot, dead centre:
+     .pill-shape  the blue pill, difference-blended with the film —
+                  blue over black, warm yellow over the cookies.
+     .pill-type   the black type and the real link, on top, unblended,
+                  so it reads on both.
+     The shape layer carries an invisible copy of the label purely so
+     both pills are exactly the same width. Retune with --pill / --pill-h. */
+  .pill-layer {
+    --pill: #2a55ff;
+    --pill-h: clamp(74px, 6.4vw, 96px);
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    pointer-events: none;
+  }
+  .pill-shape { mix-blend-mode: difference; z-index: 10; }
+  .pill-type { z-index: 11; }
+  .pill {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: var(--pill-h); padding: 0 calc(var(--pill-h) * 0.62);
+    border-radius: 999px;
+    color: #000; text-decoration: none;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: clamp(22px, 2.5vw, 36px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .pill-type .pill { pointer-events: auto; }
+  .pill-bg {
+    position: absolute; inset: 0; border-radius: inherit;
+    background: var(--pill);
+    transition: transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .pill-label { position: relative; }
+  .pill-shape .pill-label { visibility: hidden; }
+  body:has(.pill-type .pill:hover) .pill-bg { transform: scale(1.06); }
+  .pill:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
+<body>
 
-<!-- data-event must match the key in functions/_lib/events.js -->
-<body data-event="xmas-party">
-
-  <div class="film-progress" id="film-progress"></div>
+  <h1 class="sr-only">IAMWE Xmas Party — Friday 18 December, Communa, Frome</h1>
 
   <div class="corner tl">
     <a href="/" aria-label="IAMWE home"><img src="/IAMWE_LOGO_TRIM.svg" alt="IAMWE"></a>
   </div>
   <div class="corner tr">
-    <a href="#buy">Tickets</a>
+    <a href="https://buytickets.at/iamwe/2542622">Tickets</a>
   </div>
 
-  <!-- ─── The film ───────────────────────────────────────────────────
-       Scroll scrubs through it, like the old Webflow/Lottie pages.
+  <!-- loop.mp4 = imwe_xmas_26_v02.mp4 cut at 23.8s, before the "Link in
+       the Bio" end card. share.jpg doubles as the poster, shown if a phone
+       won't autoplay (e.g. iPhone in Low Power Mode). -->
+  <div class="stage">
+    <video src="/tickets/xmas-party/loop.mp4" poster="/tickets/xmas-party/share.jpg"
+           autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+  </div>
 
-       FILM:  scroll.mp4 in this folder (from imwe_xmas_26_v02.mp4, cut
-              at 23.8s before the "Link in the Bio" end card). It must be encoded with every
-              frame a keyframe or scrubbing stutters — see TICKETS.md for
-              the one-line ffmpeg command.
-       STILL: still.jpg — shown while the film loads, and on its own if
-              there's no film (it slowly pushes in as you scroll).
-       Neither there? The stage is just black.
+  <div class="pill-layer pill-shape" aria-hidden="true">
+    <span class="pill"><span class="pill-bg"></span><span class="pill-label">Buy tickets</span></span>
+  </div>
+  <div class="pill-layer pill-type">
+    <!-- Ticket Tailor handles checkout, tickets, emails and the door. -->
+    <a class="pill" href="https://buytickets.at/iamwe/2542622"><span class="pill-label">Buy tickets</span></a>
+  </div>
 
-       --film-length is how much scrolling the film takes. Longer =
-       slower, more cinematic. -->
-  <section class="film" id="film" style="--film-length: 600vh">
-    <div class="stage" id="stage">
-      <img class="still" id="still" src="/tickets/xmas-party/still.jpg" alt="" aria-hidden="true">
-      <video id="video" data-src="/tickets/xmas-party/scroll.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
-
-      <!-- The film carries the event info itself (XMAS / DEC 18 /
-           COMMUNA), so there's no text laid over it. To add some, put
-           chapters back — see TICKETS.md:
-           <div class="chapter" data-from="0.2" data-to="0.4"><h2>…</h2></div> -->
-      <h1 class="sr-only">IAMWE Xmas Party — Friday 18 December, Communa, Frome</h1>
-
-      <span class="scroll-cue mono" id="scroll-cue">Scroll</span>
-      <span class="loading-film mono" id="loading-film" hidden>Loading film…</span>
-    </div>
-
-    <!-- BUY TICKETS: sits just below the fold, scrolls up over the film
-         like part of the page, then holds in the centre (position: sticky)
-         for the rest of the film. Clicking it goes to the buy card. -->
-    <!-- Two layers stuck in the same place: the pill colour (difference-
-         blended with the film) and, on top, the type and the actual link
-         (solid black, no blend, so it always reads). -->
-    <div class="buy-pill-track buy-pill-shape" aria-hidden="true">
-      <span class="buy-pill"><span class="buy-pill-bg"></span><span class="buy-pill-label">Buy tickets</span></span>
-    </div>
-    <div class="buy-pill-track buy-pill-type">
-      <a class="buy-pill" id="jump" href="#buy"><span class="buy-pill-label">Buy tickets</span></a>
-    </div>
-  </section>
-
-  <!-- ─── Buy ─────────────────────────────────────────────────────────── -->
-  <section class="buy" id="buy">
-    <div class="buy-card">
-      <span class="mono" style="color:var(--paper-dim)">Tickets</span>
-      <h2 id="ev-name">IAMWE Xmas Party</h2>
-      <div class="meta mono" id="ev-meta">Friday 18 December 2026<br>Communa, Frome</div>
-
-      <div class="price-row">
-        <span class="mono" id="tier-label">Early bird</span>
-        <span class="price" id="price">£20</span>
-      </div>
-
-      <div id="sale-open">
-        <form id="buy-form" novalidate>
-          <div class="field">
-            <label class="mono" for="name">Name</label>
-            <input id="name" name="name" autocomplete="name" required>
-          </div>
-          <div class="field">
-            <label class="mono" for="email">Email — your tickets go here</label>
-            <input id="email" name="email" type="email" inputmode="email" autocomplete="email" required>
-          </div>
-
-          <div class="qty">
-            <span class="mono" style="color:var(--paper-dim)">Tickets</span>
-            <div class="stepper">
-              <button type="button" id="minus" aria-label="One fewer">−</button>
-              <output id="qty" aria-live="polite">1</output>
-              <button type="button" id="plus" aria-label="One more">+</button>
-            </div>
-          </div>
-
-          <div class="total">
-            <span class="mono" style="color:var(--paper-dim)">Total</span>
-            <strong id="total">£20.00</strong>
-          </div>
-
-          <label class="optin">
-            <input type="checkbox" id="optin">
-            <span>Tell me about future IAMWE events. Occasional emails, unsubscribe any time.</span>
-          </label>
-
-          <p class="form-error" id="form-error" role="alert"></p>
-          <div id="paypal-buttons"></div>
-          <p class="small-print">Your tickets and QR codes are emailed to you.</p>
-          <p class="small-print left-note mono" id="left-note" hidden></p>
-        </form>
-      </div>
-
-      <div id="sale-closed" hidden>
-        <p class="closed-note" id="closed-msg">Sold out</p>
-        <p class="small-print">Questions? <a href="mailto:graphicsoloutions@gmail.com">Get in touch</a>.</p>
-      </div>
-    </div>
-  </section>
-
-  <footer class="site-foot mono">
-    <span>IAMWE</span>
-    <span>Frome, Somerset</span>
-    <a href="mailto:graphicsoloutions@gmail.com">Contact</a>
-  </footer>
-
-  <div class="busy mono" id="busy"><span>Confirming your tickets…</span></div>
-
-  <script src="/tickets-kit/event.js"></script>
 </body>
 </html>
