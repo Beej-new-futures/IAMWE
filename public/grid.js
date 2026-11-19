@@ -112,7 +112,8 @@
   // Colouring each circle individually would have meant one stroke per
   // circle: a few thousand draw calls a frame instead of five. Masking a
   // single fill costs one composite however many circles there are.
-  const INK = '#000000';
+  // iamwe-theme-ink: black on paper, paper-white in dark mode (theme.js)
+  const ink = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? '#efece6' : '#000000');
 
   // ── Cost ────────────────────────────────────────────────────────────
   // Two halves scale badly and they scale differently. The CPU half is
@@ -255,7 +256,7 @@
   // One flat fill, the size of the page. The stencil does all the work
   // after this.
   function paintInk() {
-    ctx.fillStyle = INK;
+    ctx.fillStyle = ink();
     ctx.fillRect(0, 0, w, h);
   }
 
@@ -479,7 +480,7 @@
       // Keep the shape, throw away the authored colour, and refill from
       // the page's own gradient at this exact position.
       kctx.globalCompositeOperation = 'source-in';
-      kctx.fillStyle = INK;
+      kctx.fillStyle = ink();
       kctx.fillRect(0, 0, mw, mh);
       // Only the patch of mask sitting behind the mark.
       kctx.globalCompositeOperation = 'destination-in';

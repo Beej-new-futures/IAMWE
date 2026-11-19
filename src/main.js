@@ -18,6 +18,18 @@ renderer.sortObjects = true
 const scene = new THREE.Scene()
 scene.fog = new THREE.FogExp2(0xffffff, 0.018)
 
+// ─── LIGHT / DARK (theme.js) ─────────────────────────────────────────────────
+// The page background is the renderer's clear colour, and the fog has to
+// match it or objects fade towards the wrong colour as they recede.
+function applyTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark'
+  const bg = dark ? 0x0d0d0d : 0xffffff
+  renderer.setClearColor(bg, 1)
+  scene.fog.color.setHex(bg)
+}
+applyTheme()
+window.addEventListener('iamwe:theme', applyTheme)
+
 const pmremGenerator = new THREE.PMREMGenerator(renderer)
 pmremGenerator.compileEquirectangularShader()
 
