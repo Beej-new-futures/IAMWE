@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your tickets — IAMWE</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Instrument+Sans:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tickets-kit/tickets.css">
+<style>
+  .wrap { max-width: 520px; margin: 0 auto; padding: 96px var(--gut) 60px; }
+  .hello { color: var(--paper-dim); margin: 6px 0 4px; }
+  h1 { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 8vw, 52px); line-height: .95; letter-spacing: -0.02em; margin: 14px 0 14px; }
+  .meta { color: var(--paper-dim); line-height: 1.9; margin-bottom: 28px; }
+  .tick { background: var(--paper); color: var(--ink); padding: 26px 22px 22px; margin-bottom: 18px; text-align: center; position: relative; }
+  /* ticket stub notches */
+  .tick::before, .tick::after { content: ''; position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); transform: translateY(-50%); }
+  .tick::before { left: -11px; } .tick::after { right: -11px; }
+  .tick canvas, .tick img { width: min(68vw, 240px); height: auto; image-rendering: pixelated; display: block; margin: 0 auto 12px; }
+  .tick .code { font-family: var(--mono); font-size: 24px; letter-spacing: .2em; }
+  .tick .sub { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(13,13,13,.55); margin-top: 4px; }
+  .tick.used { opacity: .45; }
+  .banner { border: 1px solid var(--hair); padding: 14px 16px; margin-bottom: 26px; color: var(--paper-dim); font-size: 14px; line-height: 1.5; }
+  .banner strong { color: var(--paper); }
+  .note { color: var(--paper-faint); font-size: 13px; line-height: 1.6; margin-top: 22px; }
+</style>
+</head>
+<body>
+  <div class="corner tl"><a href="/" aria-label="IAMWE home"><img src="/IAMWE_LOGO_TRIM.svg" alt="IAMWE"></a></div>
+
+  <main class="wrap" id="wrap">
+    <p class="mono" style="color:var(--paper-dim)" id="status">Loading your tickets…</p>
+  </main>
+
+  <script src="/tickets-kit/vendor/qrcode.js"></script>
+  <script>
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var token = params.get('o');
+    var wrap = document.getElementById('wrap');
+    var esc = function (s) { return String(s || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+
+    if (!token) { document.getElementById('status').textContent = 'No ticket link — check your email for the link to your tickets.'; return; }
+
+    fetch('/api/tickets/order/' + encodeURIComponent(token)).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) { document.getElementById('status').textContent = 'We couldn’t find those tickets. Check the link in your email, or get in touch.'; return; }
+      var e = d.event, n = d.tickets.length;
+      var html = '';
+      html += '<span class="mono" style="color:var(--paper-dim)">' + (n === 1 ? 'Your ticket' : 'Your ' + n + ' tickets') + '</span>';
+      html += '<h1>' + esc(e.name) + '</h1>';
+      html += '<div class="meta mono">' + [e.dateLabel, e.timeLabel, e.venue].filter(Boolean).map(esc).join('<br>') + '</div>';
+      if (params.get('new')) {
+        html += '<div class="banner"><strong>You’re in, ' + esc(d.name.split(' ')[0]) + '.</strong> ' +
+          (d.emailSent ? 'We’ve emailed your tickets to ' + esc(d.email) + ' too.' : 'Your tickets will be emailed to ' + esc(d.email) + ' — and you can bookmark this page.') + '</div>';
+      }
+      d.tickets.forEach(function (t, i) {
+        html += '<div class="tick' + (t.used ? ' used' : '') + '"><div class="qr" data-code="' + esc(t.code) + '"></div>' +
+          '<div class="code">' + esc(t.code) + '</div>' +
+          '<div class="sub">' + (t.used ? 'Checked in' : 'Admit one · ' + (i + 1) + ' of ' + n) + '</div></div>';
+      });
+      html += '<p class="note">' + esc(e.ticketNote || '') + ' Turn your screen brightness up at the door. In a group? Each person can show their own code from this page, or forward them the email.</p>';
+      wrap.innerHTML = html;
+
+      Array.prototype.forEach.call(wrap.querySelectorAll('.qr'), function (el) {
+        var q = qrcode(0, 'M'); q.addData(el.dataset.code); q.make();
+        var count = q.getModuleCount(), cell = 8, margin = 2, size = (count + margin * 2) * cell;
+        var c = document.createElement('canvas'); c.width = c.height = size;
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, size, size); g.fillStyle = '#0d0d0d';
+        for (var r = 0; r < count; r++) for (var k = 0; k < count; k++) if (q.isDark(r, k)) g.fillRect((k + margin) * cell, (r + margin) * cell, cell, cell);
+        c.setAttribute('aria-label', 'QR code for ' + el.dataset.code);
+        el.appendChild(c);
+      });
+    }).catch(function () {
+      document.getElementById('status').textContent = 'Couldn’t load your tickets — check your connection and refresh. Your email has your codes too.';
+    });
+  })();
+  </script>
+</body>
+</html>

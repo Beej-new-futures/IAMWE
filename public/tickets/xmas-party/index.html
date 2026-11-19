@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>IAMWE Xmas Party — Friday 18 December · Communa, Frome</title>
+<meta name="description" content="IAMWE Xmas Party — Friday 18 December at Communa, Frome. Early bird tickets £20.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0d0d">
+<meta property="og:title" content="IAMWE Xmas Party">
+<meta property="og:description" content="Friday 18 December · Communa, Frome · Early bird £20">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://iamwe.uk/tickets/xmas-party/share.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Instrument+Sans:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tickets-kit/tickets.css">
+<style>
+  /* This film is shot on pure black and framed 3:4, so the page goes
+     black to match and the film is shown whole (contain), never
+     cropped: cover would cut the cookies off on phones and desktops. */
+  :root { --ink: #000; --ink-2: #0c0c0c; }
+  .stage video, .stage .still { object-fit: contain; }
+  .stage::after { background: linear-gradient(to bottom, rgba(0,0,0,.5), transparent 14%, transparent 86%, rgba(0,0,0,.6)); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+
+<!-- data-event must match the key in functions/_lib/events.js -->
+<body data-event="xmas-party">
+
+  <div class="film-progress" id="film-progress"></div>
+
+  <div class="corner tl">
+    <a href="/" aria-label="IAMWE home"><img src="/IAMWE_LOGO_TRIM.svg" alt="IAMWE"></a>
+  </div>
+  <div class="corner tr">
+    <a href="#buy">Tickets</a>
+  </div>
+
+  <!-- ─── The film ───────────────────────────────────────────────────
+       Scroll scrubs through it, like the old Webflow/Lottie pages.
+
+       FILM:  scroll.mp4 in this folder (from imwe_xmas_26_v02.mp4, cut
+              at 23.8s before the "Link in the Bio" end card). It must be encoded with every
+              frame a keyframe or scrubbing stutters — see TICKETS.md for
+              the one-line ffmpeg command.
+       STILL: still.jpg — shown while the film loads, and on its own if
+              there's no film (it slowly pushes in as you scroll).
+       Neither there? The stage is just black.
+
+       --film-length is how much scrolling the film takes. Longer =
+       slower, more cinematic. -->
+  <section class="film" id="film" style="--film-length: 600vh">
+    <div class="stage" id="stage">
+      <img class="still" id="still" src="/tickets/xmas-party/still.jpg" alt="" aria-hidden="true">
+      <video id="video" data-src="/tickets/xmas-party/scroll.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+
+      <!-- The film carries the event info itself (XMAS / DEC 18 /
+           COMMUNA), so there's no text laid over it. To add some, put
+           chapters back — see TICKETS.md:
+           <div class="chapter" data-from="0.2" data-to="0.4"><h2>…</h2></div> -->
+      <h1 class="sr-only">IAMWE Xmas Party — Friday 18 December, Communa, Frome</h1>
+
+      <span class="scroll-cue mono" id="scroll-cue">Scroll</span>
+      <span class="loading-film mono" id="loading-film" hidden>Loading film…</span>
+    </div>
+  </section>
+
+  <a class="jump mono" id="jump" href="#buy"><span id="jump-label">Tickets</span><span aria-hidden="true">↓</span></a>
+
+  <!-- ─── Buy ─────────────────────────────────────────────────────────── -->
+  <section class="buy" id="buy">
+    <div class="buy-card">
+      <span class="mono" style="color:var(--paper-dim)">Tickets</span>
+      <h2 id="ev-name">IAMWE Xmas Party</h2>
+      <div class="meta mono" id="ev-meta">Friday 18 December 2026<br>Communa, Frome</div>
+
+      <div class="price-row">
+        <span class="mono" id="tier-label">Early bird</span>
+        <span class="price" id="price">£20</span>
+      </div>
+
+      <div id="sale-open">
+        <form id="buy-form" novalidate>
+          <div class="field">
+            <label class="mono" for="name">Name</label>
+            <input id="name" name="name" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label class="mono" for="email">Email — your tickets go here</label>
+            <input id="email" name="email" type="email" inputmode="email" autocomplete="email" required>
+          </div>
+
+          <div class="qty">
+            <span class="mono" style="color:var(--paper-dim)">Tickets</span>
+            <div class="stepper">
+              <button type="button" id="minus" aria-label="One fewer">−</button>
+              <output id="qty" aria-live="polite">1</output>
+              <button type="button" id="plus" aria-label="One more">+</button>
+            </div>
+          </div>
+
+          <div class="total">
+            <span class="mono" style="color:var(--paper-dim)">Total</span>
+            <strong id="total">£20.00</strong>
+          </div>
+
+          <label class="optin">
+            <input type="checkbox" id="optin">
+            <span>Tell me about future IAMWE events. Occasional emails, unsubscribe any time.</span>
+          </label>
+
+          <p class="form-error" id="form-error" role="alert"></p>
+          <div id="paypal-buttons"></div>
+          <p class="small-print">Pay with PayPal or any debit/credit card — no PayPal account needed. Your tickets, each with its own QR code, are emailed to you straight away.</p>
+          <p class="small-print left-note mono" id="left-note" hidden></p>
+        </form>
+      </div>
+
+      <div id="sale-closed" hidden>
+        <p class="closed-note" id="closed-msg">Sold out</p>
+        <p class="small-print">Questions? <a href="mailto:graphicsoloutions@gmail.com">Get in touch</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-foot mono">
+    <span>IAMWE</span>
+    <span>Frome, Somerset</span>
+    <a href="mailto:graphicsoloutions@gmail.com">Contact</a>
+  </footer>
+
+  <div class="busy mono" id="busy"><span>Confirming your tickets…</span></div>
+
+  <script src="/tickets-kit/event.js"></script>
+</body>
+</html>

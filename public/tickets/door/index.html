@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Door — IAMWE Tickets</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0d0d">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tickets-kit/tickets.css">
+<style>
+  .wrap { max-width: 560px; margin: 0 auto; padding: 84px var(--gut) 40px; }
+  h1 { font-family: var(--display); font-weight: 800; font-size: 30px; margin: 8px 0 18px; }
+  .row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .row input, .row select { flex: 1; background: var(--ink-2); border: 1px solid var(--hair); padding: 14px; font-size: 18px; font-family: var(--mono); letter-spacing: .12em; text-transform: uppercase; border-radius: 0; }
+  .row .btn { width: auto; padding: 14px 20px; }
+  .cam { position: relative; background: #000; aspect-ratio: 1; margin-bottom: 14px; overflow: hidden; }
+  .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam .frame { position: absolute; inset: 18%; border: 2px solid rgba(255,255,255,.6); }
+  .result { padding: 26px 20px; margin-bottom: 14px; font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; min-height: 120px; }
+  .result small { display: block; font-family: var(--mono); font-weight: 400; font-size: 14px; letter-spacing: .06em; margin-top: 8px; opacity: .85; }
+  .result.admitted { background: var(--ok); color: #04210f; }
+  .result.used, .result.wrong-event { background: #ffb300; color: #201500; }
+  .result.invalid { background: var(--bad); color: #fff; }
+  .result.idle { border: 1px dashed var(--hair); color: var(--paper-faint); font-size: 18px; }
+  .stats { display: flex; justify-content: space-between; color: var(--paper-dim); margin: 16px 0; }
+  .links { display: flex; gap: 18px; flex-wrap: wrap; color: var(--paper-faint); }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <span class="mono" style="color:var(--paper-dim)">IAMWE · Door</span>
+
+    <section id="login">
+      <h1>Check-in</h1>
+      <div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="Door PIN" autocomplete="off"></div>
+      <div class="row"><input id="slug" placeholder="Event (e.g. xmas-party)" value="xmas-party" autocapitalize="off"></div>
+      <div class="row"><button class="btn mono" id="go">Start</button></div>
+      <p class="form-error" id="login-err"></p>
+    </section>
+
+    <section id="door" hidden>
+      <h1 id="ev-name">—</h1>
+      <div class="stats mono"><span id="st-in">0 in</span><span id="st-sold">0 sold</span></div>
+      <div class="result idle" id="result">Scan a QR code or type a code</div>
+      <div class="cam" id="cam" hidden><video id="camvid" playsinline muted></video><div class="frame"></div></div>
+      <div class="row"><button class="btn ghost mono" id="camera">Start camera</button></div>
+      <form class="row" id="manual"><input id="code" placeholder="ABCD-1234" autocomplete="off" autocapitalize="characters"><button class="btn mono">Check</button></form>
+      <div class="links mono"><a href="#" id="export">Download buyers (CSV)</a><a href="#" id="export-optin">Mailing list only</a><a href="#" id="logout">Lock</a></div>
+    </section>
+  </main>
+
+  <script src="/tickets-kit/vendor/jsQR.js"></script>
+  <script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var pin = sessionStorage.getItem('door-pin'), slug = sessionStorage.getItem('door-slug');
+    var stream = null, scanning = false, lastCode = '', lastAt = 0;
+
+    function setResult(cls, big, small) {
+      var r = $('result'); r.className = 'result ' + cls;
+      r.innerHTML = ''; r.appendChild(document.createTextNode(big));
+      if (small) { var s = document.createElement('small'); s.textContent = small; r.appendChild(s); }
+      if (navigator.vibrate) navigator.vibrate(cls === 'admitted' ? 80 : [60, 60, 60]);
+    }
+
+    function refreshStats() {
+      return fetch('/api/tickets/stats?slug=' + encodeURIComponent(slug) + '&pin=' + encodeURIComponent(pin))
+        .then(function (r) { return r.json(); }).then(function (d) {
+          if (!d.ok) throw new Error(d.error);
+          $('ev-name').textContent = d.name;
+          $('st-in').textContent = d.checkedIn + ' in';
+          $('st-sold').textContent = d.sold + ' sold / ' + d.capacity;
+        });
+    }
+
+    function start() {
+      refreshStats().then(function () {
+        sessionStorage.setItem('door-pin', pin); sessionStorage.setItem('door-slug', slug);
+        $('login').hidden = true; $('door').hidden = false;
+      }).catch(function (e) { $('login-err').textContent = e.message || 'Couldn’t start'; });
+    }
+
+    $('go').addEventListener('click', function () { pin = $('pin').value.trim(); slug = $('slug').value.trim(); start(); });
+    if (pin && slug) start();
+
+    function check(code) {
+      return fetch('/api/tickets/checkin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pin: pin, code: code, slug: slug }) })
+        .then(function (r) { return r.json(); }).then(function (d) {
+          if (!d.ok) return setResult('invalid', d.error || 'Error');
+          if (d.result === 'admitted') setResult('admitted', '✓ ' + d.name, d.code + (d.partySize > 1 ? ' · party of ' + d.partySize : ''));
+          else if (d.result === 'used') setResult('used', 'Already in', (d.name || '') + ' · ' + d.code + (d.at ? ' · ' + new Date(d.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''));
+          else if (d.result === 'wrong-event') setResult('wrong-event', 'Wrong event', d.message);
+          else setResult('invalid', 'Not valid', d.message || '');
+          refreshStats();
+        }).catch(function () { setResult('invalid', 'No connection', 'Try again'); });
+    }
+
+    $('manual').addEventListener('submit', function (e) { e.preventDefault(); var c = $('code').value.trim(); if (c) check(c); $('code').value = ''; });
+
+    $('camera').addEventListener('click', function () {
+      if (stream) { stopCam(); return; }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
+        stream = s; var v = $('camvid'); v.srcObject = s; v.play(); $('cam').hidden = false; $('camera').textContent = 'Stop camera';
+        scanning = true; scan();
+      }).catch(function () { setResult('invalid', 'No camera', 'Allow camera access, or type codes in'); });
+    });
+    function stopCam() { scanning = false; stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; $('cam').hidden = true; $('camera').textContent = 'Start camera'; }
+
+    var canvas = document.createElement('canvas'), g = canvas.getContext('2d', { willReadFrequently: true });
+    function scan() {
+      if (!scanning) return;
+      var v = $('camvid');
+      if (v.readyState >= 2) {
+        var w = 480, h = Math.round(480 * v.videoHeight / v.videoWidth) || 480;
+        canvas.width = w; canvas.height = h; g.drawImage(v, 0, 0, w, h);
+        var hit = jsQR(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+        if (hit && hit.data) {
+          var now = Date.now();
+          if (hit.data !== lastCode || now - lastAt > 4000) { lastCode = hit.data; lastAt = now; check(hit.data); }
+        }
+      }
+      setTimeout(function () { requestAnimationFrame(scan); }, 120);
+    }
+
+    function exportCsv(optin) {
+      return function (e) { e.preventDefault(); location.href = '/api/tickets/export?slug=' + encodeURIComponent(slug) + '&pin=' + encodeURIComponent(pin) + (optin ? '&optin=1' : ''); };
+    }
+    $('export').addEventListener('click', exportCsv(false));
+    $('export-optin').addEventListener('click', exportCsv(true));
+    $('logout').addEventListener('click', function (e) { e.preventDefault(); sessionStorage.clear(); location.reload(); });
+  })();
+  </script>
+</body>
+</html>
