@@ -350,16 +350,17 @@ a { color: inherit; text-decoration: none; }
   .about-body-panel .about-body { padding-top: 6.5vw; padding-bottom: 3vw; }
   .about-intro { margin-bottom: 2.6vw; }
   .about-intro h1.about-wordmark { margin-bottom: 1.4vw; }
-  .about-intro h1.about-wordmark img { width: 8.5vw; }
-  .about-intro p { font-size: 1.42vw; line-height: 1.55; }
+  .about-intro h1.about-wordmark img { width: 7vw; }
+  .about-intro p { font-size: 1.16vw; line-height: 1.55; }
+  .about-intro p + p { margin-top: 0.9vw; }
   .about-practices { gap: 2.2vw; padding-top: 2.2vw; }
   .about-practice .code { margin-top: 1.4vw; margin-bottom: 0.5vw; }
-  .about-practice .role { font-size: 0.78vw; margin-bottom: 0.8vw; }
-  .about-practice p { font-size: 1.08vw; line-height: 1.6; margin-bottom: 0.8vw; }
-  .about-practice .credits { font-size: 0.74vw; }
+  .about-practice .role { font-size: 0.68vw; margin-bottom: 0.7vw; }
+  .about-practice p { font-size: 0.94vw; line-height: 1.6; margin-bottom: 0.7vw; }
+  .about-practice .credits { font-size: 0.66vw; }
   .about-cta { margin-top: 2.2vw; padding-top: 1.5vw; }
-  .about-cta p { font-size: 1.08vw; }
-  .about-body .mono, .about-footer .mono { font-size: 0.74vw; }
+  .about-cta p { font-size: 0.94vw; }
+  .about-body .mono, .about-footer .mono { font-size: 0.66vw; }
   .about-footer { padding-bottom: 3vw; }
 }
 
@@ -367,3 +368,7 @@ a { color: inherit; text-decoration: none; }
 .about-body-panel { justify-content: flex-start; }
 .about-body { margin-top: auto; padding-top: clamp(5rem, 9vh, 7rem); }
 .about-footer { margin-bottom: auto; }
+
+/* the sign-off line under the intro */
+.about-intro p.about-sign { color: var(--iw-ink); font-weight: 500; }
+.about-intro p + p { margin-top: 0.9em; }
