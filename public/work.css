@@ -260,7 +260,9 @@ a { color: inherit; text-decoration: none; }
 .index-aside {
   position: sticky;
   top: calc(var(--iw-header-h) + 2rem);
-  max-height: calc(100vh - var(--iw-header-h) - 4rem);
+  /* -9rem rather than -4rem: leaves the bottom-right corner clear for the
+     light/dark toggle (theme.js), so the list scrolls short of it. */
+  max-height: calc(100vh - var(--iw-header-h) - 9rem);
   overflow-y: auto;
   /* Pushed aside and faded by work.js, mirroring .stage-copy. Never set
      on the archive page, so both are a no-op there. */

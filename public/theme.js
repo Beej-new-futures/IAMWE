@@ -9,7 +9,7 @@
      plus the few colours those files set directly.
    - The homepage's Three.js scene listens for the 'iamwe:theme' event
      and swaps its clear colour and fog to match.
-   - The button: a small round half-moon, bottom-left, in the same
+   - The button: a small round half-moon, bottom-right, in the same
      difference blend as the corner nav, so it reads on any background. */
 (function () {
   'use strict';
@@ -36,7 +36,7 @@
     /* gentle cross-fade when switching (not on first paint) */
     'html.theme-anim, html.theme-anim body, html.theme-anim *{transition:background-color .45s ease,color .45s ease,border-color .45s ease !important}',
     /* the button */
-    '.theme-toggle{position:fixed;left:1.8rem;bottom:1.6rem;z-index:200;',
+    '.theme-toggle{position:fixed;right:1.8rem;bottom:1.6rem;z-index:200;',
     'width:30px;height:30px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;',
     'color:#fff;mix-blend-mode:difference;-webkit-tap-highlight-color:transparent}',
     '.theme-toggle svg{display:block;width:100%;height:100%;transition:transform .6s cubic-bezier(.2,.8,.2,1)}',
@@ -44,7 +44,7 @@
     '.theme-toggle:hover svg{transform:scale(1.12)}',
     'html[data-theme="dark"] .theme-toggle:hover svg{transform:rotate(180deg) scale(1.12)}',
     '.theme-toggle:focus-visible{outline:2px solid #fff;outline-offset:4px}',
-    '@media (max-width:620px){.theme-toggle{left:1.1rem;bottom:1.1rem;width:26px;height:26px}}',
+    '@media (max-width:620px){.theme-toggle{right:1.1rem;bottom:1.1rem;width:26px;height:26px}}',
     '@media (prefers-reduced-motion:reduce){.theme-toggle svg{transition:none}html.theme-anim *{transition:none !important}}'
   ].join('');
   var style = document.createElement('style');

@@ -326,3 +326,15 @@ a { color: inherit; text-decoration: none; }
 }
 .about-footer .mono { color: var(--iw-ink-faint); display: flex; gap: 0.7rem; }
 .about-footer .mono::before { content: '—'; }
+
+/* The hallway film (replaces the tiled portrait + about-hero.js). Shown
+   exactly as made: no duotone, no grid, just cover-fit and looping. */
+.about-hero-film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
