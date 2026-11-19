@@ -69,11 +69,14 @@
     <!-- BUY TICKETS: sits just below the fold, scrolls up over the film
          like part of the page, then holds in the centre (position: sticky)
          for the rest of the film. Clicking it goes to the buy card. -->
-    <div class="buy-pill-track">
-      <a class="buy-pill" id="jump" href="#buy">
-        <span class="buy-pill-bg" aria-hidden="true"></span>
-        <span class="buy-pill-label">Buy tickets</span>
-      </a>
+    <!-- Two layers stuck in the same place: the pill colour (difference-
+         blended with the film) and, on top, the type and the actual link
+         (solid black, no blend, so it always reads). -->
+    <div class="buy-pill-track buy-pill-shape" aria-hidden="true">
+      <span class="buy-pill"><span class="buy-pill-bg"></span><span class="buy-pill-label">Buy tickets</span></span>
+    </div>
+    <div class="buy-pill-track buy-pill-type">
+      <a class="buy-pill" id="jump" href="#buy"><span class="buy-pill-label">Buy tickets</span></a>
     </div>
   </section>
 
