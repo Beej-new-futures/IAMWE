@@ -1,4 +1,4 @@
-// IAMWE work archive — eight plates on a turning cylinder.
+// IAMWE work archive — plates on a turning cylinder (any number of them).
 //
 // The plates are flat cards that always face the camera. They are not
 // laid out on the page so much as arranged around a vertical cylinder
@@ -53,6 +53,18 @@
     Math.PI / 2, -Math.PI / 2,                 // the two sides
   ];
 
+  // Any number of plates. Eight keeps the hand-set stations above; any
+  // other count is spread evenly round the cylinder, stepping by a
+  // stride that shares no factor with the count, so neighbours in the
+  // page order land on opposite faces rather than queueing up in a row.
+  function stationAngle(i, n) {
+    if (n === STATIONS.length) return STATIONS[i];
+    let k = Math.max(1, Math.round(n * 0.382));
+    const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    while (gcd(k, n) !== 1) k++;
+    return ((i * k) % n) / n * Math.PI * 2;
+  }
+
   // ── Drift and spacing ───────────────────────────────────────────────
   const SPEED_MIN = 5;         // px per second
   const SPEED_MAX = 13;
@@ -101,6 +113,7 @@
 
     const sy = window.scrollY;
     let station = 0;
+    const tileCount = items.filter((el) => el.classList.contains('tile')).length;
 
     geo = items.map((el) => {
       // Read the resting box with every live value stripped, so a resize
@@ -129,7 +142,7 @@
       };
 
       if (tile) {
-        g.ang = STATIONS[station % STATIONS.length];
+        g.ang = stationAngle(station, tileCount);
         station++;
         const a = rnd() * Math.PI * 2;
         const s = SPEED_MIN + rnd() * (SPEED_MAX - SPEED_MIN);

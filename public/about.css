@@ -338,3 +338,32 @@ a { color: inherit; text-decoration: none; }
   display: block;
   background: #000;
 }
+
+/* ─── Proportional type (Nov 2026) ───────────────────────────────────
+   Above the phone breakpoint every size and gap here is a fraction of
+   the window width, with no minimum or maximum, so the page keeps the
+   same proportions on every screen, from a laptop to a 4K monitor, like
+   a picture scaling. Below 860px the layout stacks and the fixed sizes
+   further up this file take over. */
+@media (min-width: 861px) {
+  .about-body, .about-footer { max-width: 38vw; padding-left: 3vw; padding-right: 3vw; }
+  .about-body-panel .about-body { padding-top: 6.5vw; padding-bottom: 3vw; }
+  .about-intro { margin-bottom: 2.6vw; }
+  .about-intro h1.about-wordmark { margin-bottom: 1.4vw; }
+  .about-intro h1.about-wordmark img { width: 8.5vw; }
+  .about-intro p { font-size: 1.42vw; line-height: 1.55; }
+  .about-practices { gap: 2.2vw; padding-top: 2.2vw; }
+  .about-practice .code { margin-top: 1.4vw; margin-bottom: 0.5vw; }
+  .about-practice .role { font-size: 0.78vw; margin-bottom: 0.8vw; }
+  .about-practice p { font-size: 1.08vw; line-height: 1.6; margin-bottom: 0.8vw; }
+  .about-practice .credits { font-size: 0.74vw; }
+  .about-cta { margin-top: 2.2vw; padding-top: 1.5vw; }
+  .about-cta p { font-size: 1.08vw; }
+  .about-body .mono, .about-footer .mono { font-size: 0.74vw; }
+  .about-footer { padding-bottom: 3vw; }
+}
+
+/* centre only when it fits (margin:auto), never clip the top under the menu */
+.about-body-panel { justify-content: flex-start; }
+.about-body { margin-top: auto; padding-top: clamp(5rem, 9vh, 7rem); }
+.about-footer { margin-bottom: auto; }
