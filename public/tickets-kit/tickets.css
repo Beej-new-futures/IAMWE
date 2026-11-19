@@ -147,6 +147,58 @@ button, input, select { font: inherit; color: inherit; }
   color: var(--paper-faint);
 }
 
+/* ─── BUY TICKETS pill ───────────────────────────────────────────────
+   Lives in the film's flow just below the fold, so it rises with the
+   first scroll, then position: sticky holds it dead centre while the
+   film plays on behind.
+
+   Two layers, stuck to the same spot:
+   .buy-pill-shape  the blue pill, difference-blended with the film —
+                    blue over black, warm yellow over the cookies.
+   .buy-pill-type   the black type and the real link, on top, unblended,
+                    so it reads on both.
+   The blend sits on the sticky track itself: a sticky element is its
+   own isolated layer, so a blend set inside it would never reach the
+   film. The shape layer carries an invisible copy of the label purely
+   so both pills are exactly the same width. */
+.buy-pill-track {
+  --pill: #2a55ff;
+  --pill-ink: #000;
+  position: sticky;
+  top: calc(50vh - 34px); top: calc(50svh - 34px);
+  z-index: 20;
+  display: flex; justify-content: center;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+.buy-pill-shape { margin-top: 18vh; mix-blend-mode: difference; }
+.buy-pill-type { margin-top: -68px; z-index: 21; }
+.buy-pill-track.hidden { opacity: 0; }
+.buy-pill-track.hidden .buy-pill { pointer-events: none; }
+.buy-pill {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 68px; padding: 0 44px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(15px, 1.5vw, 19px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.buy-pill-type .buy-pill { pointer-events: auto; }
+.buy-pill-bg {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: var(--pill);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1);
+}
+.buy-pill-label { position: relative; color: var(--pill-ink); }
+.buy-pill-shape .buy-pill-label { visibility: hidden; }
+.film:has(.buy-pill-type .buy-pill:hover) .buy-pill-bg { transform: scale(1.06); }
+.buy-pill:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+
 /* Always-there way to skip straight to buying. */
 .jump {
   position: fixed; right: 1.6rem; bottom: 1.6rem; z-index: 40;

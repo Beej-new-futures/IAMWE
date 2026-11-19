@@ -65,9 +65,17 @@
       <span class="scroll-cue mono" id="scroll-cue">Scroll</span>
       <span class="loading-film mono" id="loading-film" hidden>Loading film…</span>
     </div>
-  </section>
 
-  <a class="jump mono" id="jump" href="#buy"><span id="jump-label">Tickets</span><span aria-hidden="true">↓</span></a>
+    <!-- BUY TICKETS: sits just below the fold, scrolls up over the film
+         like part of the page, then holds in the centre (position: sticky)
+         for the rest of the film. Clicking it goes to the buy card. -->
+    <div class="buy-pill-track">
+      <a class="buy-pill" id="jump" href="#buy">
+        <span class="buy-pill-bg" aria-hidden="true"></span>
+        <span class="buy-pill-label">Buy tickets</span>
+      </a>
+    </div>
+  </section>
 
   <!-- ─── Buy ─────────────────────────────────────────────────────────── -->
   <section class="buy" id="buy">
@@ -113,7 +121,7 @@
 
           <p class="form-error" id="form-error" role="alert"></p>
           <div id="paypal-buttons"></div>
-          <p class="small-print">Pay with PayPal or any debit/credit card — no PayPal account needed. Your tickets, each with its own QR code, are emailed to you straight away.</p>
+          <p class="small-print">Your tickets and QR codes are emailed to you.</p>
           <p class="small-print left-note mono" id="left-note" hidden></p>
         </form>
       </div>

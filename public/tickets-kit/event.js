@@ -63,7 +63,7 @@
     var p = filmProgress();
     stage.style.setProperty('--p', p.toFixed(4));
     progressBar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
-    if (cue) cue.style.opacity = p > 0.02 ? 0 : '';
+    if (cue) cue.style.visibility = p > 0.02 ? 'hidden' : '';
     if (still && !hasVideo && !reduced) {
       still.style.transform = 'scale(' + (1.18 - p * 0.18).toFixed(4) + ') translateY(' + (p * -3).toFixed(2) + '%)';
     }
@@ -106,9 +106,14 @@
   new IntersectionObserver(function (entries) {
     entries.forEach(function (e) {
       if (e.isIntersecting) buy.classList.add('in');
-      jump.classList.toggle('hidden', e.isIntersecting);
+      if (jump) jump.parentNode.classList.toggle('hidden', e.isIntersecting);
     });
   }, { threshold: 0.18 }).observe(buy);
+
+  if (jump) jump.addEventListener('click', function (e) {
+    e.preventDefault();
+    buy.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  });
 
   // ─── Event data from the server (price, tickets left) ─────────────────
   var ev = null, qty = 1;
@@ -135,7 +140,8 @@
     $('ev-meta').innerHTML = meta.map(function (m) { return m.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }).join('<br>');
     $('tier-label').textContent = data.tier;
     $('price').textContent = money(data.pricePence);
-    $('jump-label').textContent = data.onSale ? 'Tickets ' + money(data.pricePence) : (data.soldOut ? 'Sold out' : 'Tickets');
+    var label = jump && jump.querySelector('.buy-pill-label');
+    if (label && !data.onSale) label.textContent = data.soldOut ? 'Sold out' : 'Tickets';
 
     var note = $('left-note');
     if (data.onSale && data.left <= 20) { note.hidden = false; note.textContent = 'Only ' + data.left + ' left'; }
