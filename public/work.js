@@ -395,4 +395,51 @@
   // (web fonts and scrollbar changes can shift things slightly).
   measure();
   window.addEventListener('load', measure);
+
+  // Vimeo films: keep the player hidden (poster showing) until it is
+  // genuinely playing, then fade it in. Uses the player's postMessage
+  // API; a fallback reveals it anyway if no word comes back.
+  const vimeo = Array.from(document.querySelectorAll('[data-vimeo] iframe'));
+  if (vimeo.length) {
+    const show = (f) => f.parentElement.classList.add('is-playing');
+    window.addEventListener('message', (e) => {
+      if (!/^https:\/\/player\.vimeo\.com$/.test(e.origin)) return;
+      let d = e.data;
+      if (typeof d === 'string') { try { d = JSON.parse(d); } catch (_) { return; } }
+      if (!d || !d.event) return;
+      const f = vimeo.find((x) => x.contentWindow === e.source);
+      if (!f) return;
+      if (d.event === 'ready') {
+        ['play', 'playing', 'timeupdate'].forEach((ev) =>
+          f.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: ev }), '*'));
+      } else if (d.event === 'play' || d.event === 'playing' || d.event === 'timeupdate') {
+        show(f);
+      }
+    });
+    vimeo.forEach((f) => {
+      f.addEventListener('load', () => setTimeout(() => show(f), 6000), { once: true });
+    });
+  }
+
+  // Re-measure whenever any picture's layout box actually changes size —
+  // a lazy image arriving, a video embed settling, web fonts reflowing
+  // the page. Measuring only at load left the cached geometry stale on
+  // pages whose pictures settled late, and the push maths then pulled
+  // later pictures into each other near the end of the scroll.
+  // ResizeObserver reports layout size only, so the scroll-scale
+  // transforms themselves never trigger it.
+  if ('ResizeObserver' in window) {
+    let pending = false;
+    const ro = new ResizeObserver(() => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => { pending = false; measure(); });
+    });
+    ro.observe(stack);
+    images.forEach((el) => ro.observe(el));
+  }
+  images.forEach((el) => {
+    const img = el.querySelector('img');
+    if (img && !img.complete) img.addEventListener('load', measure, { once: true });
+  });
 })();

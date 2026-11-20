@@ -228,7 +228,14 @@ a { color: inherit; text-decoration: none; }
   height: 100%;
   border: 0;
   display: block;
+  /* Hidden until the film is actually playing (work.js listens to the
+     Vimeo player). Before that a player frame paints white, and on a
+     page this dark that read as a flash. The poster behind stands in. */
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background: #000;
 }
+.stage-stream.is-playing iframe { opacity: 1; }
 
 .stage-img img {
   display: block;
