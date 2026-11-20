@@ -77,6 +77,18 @@
   const REACH_NEAR = 44;       // px a front one does
   const PULL = 0.16;           // fraction of the way to the cursor
   const PULL_HOVER = 0.08;
+
+  // ── Hover ───────────────────────────────────────────────────────────
+  // Rolling over a card swells it past anything the cylinder does on its
+  // own, lifts it to the top, and lets it shoulder the others aside. It
+  // also turns the cylinder under that card towards the front, so the
+  // project you looked at stays one of the big ones for a while after —
+  // which is what keeps the line-up changing.
+  const SCALE_HOVER = 1.7;     // a hovered card at full swell
+  const HOVER_IN = 0.16;       // how fast it swells (per frame, eased)
+  const HOVER_OUT = 0.08;      // how fast it settles back
+  const PUSH_HOVER = 0.22;     // how hard it shoves its neighbours
+  const HOVER_TURN = 0.06;     // how fast its station turns to the front
   const PULL_MAX = 0.24;
   const EASE = 0.085;          // how quickly the lean catches up
   const FALLOFF = 620;         // px — how close counts as near
@@ -138,6 +150,7 @@
         scale: 1,
         depth: Number.isFinite(depth) ? clamp01(depth) : 0.5,
         lx: 0, ly: 0,          // the cursor lean, eased
+        hov: 0,                // hover swell, 0..1, eased
         z: -1,
       };
 
@@ -194,12 +207,17 @@
         const oy = wantY - Math.abs(dy);
         if (ox <= 0 || oy <= 0) continue;    // not crowding
         // Separate along whichever axis needs the least travel.
+        // A swelling card stands its ground and shoves harder; the
+        // other one takes all of the travel.
+        const k = PUSH + PUSH_HOVER * Math.max(a.hov, b.hov);
+        const wa = a.hov > b.hov ? 0 : b.hov > a.hov ? 2 : 1;
+        const wb = 2 - wa;
         if (ox < oy) {
-          const p = ox * PUSH * (dx >= 0 ? 1 : -1);
-          a.x -= p; b.x += p;
+          const p = ox * k * (dx >= 0 ? 1 : -1) / 2;
+          a.x -= p * wa; b.x += p * wb;
         } else {
-          const p = oy * PUSH * (dy >= 0 ? 1 : -1);
-          a.y -= p; b.y += p;
+          const p = oy * k * (dy >= 0 ? 1 : -1) / 2;
+          a.y -= p * wa; b.y += p * wb;
         }
       }
     }
@@ -224,15 +242,26 @@
     const tiles = geo.filter((g) => g.tile);
 
     // 1. Depth, from the cylinder.
-    for (const g of tiles) {
+    for (let i = 0; i < geo.length; i++) {
+      const g = geo[i];
+      if (!g.tile) continue;
+      const on = i === hovered;
+      g.hov += ((on ? 1 : 0) - g.hov) * (on ? HOVER_IN : HOVER_OUT);
+      if (on) {
+        // turn this card's station towards the front of the cylinder
+        let d = -(g.ang + spin);
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        g.ang += d * HOVER_TURN;
+      }
       g.near = (Math.cos(g.ang + spin) + 1) / 2;
-      g.scale = SCALE_BACK + (SCALE_FRONT - SCALE_BACK) * g.near;
+      const base = SCALE_BACK + (SCALE_FRONT - SCALE_BACK) * g.near;
+      g.scale = base + (SCALE_HOVER - base) * g.hov;
     }
 
     // 2. Drift, then spacing, then the window edges — in that order, so
     //    the edges always have the last word and nothing can be shoved
     //    out of the window by its neighbours.
-    for (const g of tiles) { g.x += g.vx * dt; g.y += g.vy * dt; }
+    for (const g of tiles) { const f = 1 - g.hov; g.x += g.vx * dt * f; g.y += g.vy * dt * f; }
     space(tiles);
     for (const g of tiles) bounce(g);
 
@@ -253,8 +282,8 @@
         near *= near;
         const k = Math.min(PULL_MAX,
           (PULL * near + PULL_HOVER * (i === hovered ? 1 : 0)) * (0.35 + 0.65 * front));
-        tlx += dx * k;
-        tly += dy * k;
+        tlx += dx * k * (1 - g.hov);
+        tly += dy * k * (1 - g.hov);
       }
       g.lx += (tlx - g.lx) * EASE;
       g.ly += (tly - g.ly) * EASE;
@@ -268,8 +297,8 @@
         g.el.style.setProperty('--dy', (g.y - g.homeY + g.ly).toFixed(2));
         g.el.style.setProperty('--sc', g.scale.toFixed(3));
         g.el.style.setProperty('--fade',
-          (FADE_BACK + (1 - FADE_BACK) * g.near).toFixed(3));
-        const z = 10 + Math.round(g.near * 40);
+          (FADE_BACK + (1 - FADE_BACK) * Math.max(g.near, g.hov)).toFixed(3));
+        const z = g.hov > 0.05 ? 60 : 10 + Math.round(g.near * 40);
         if (z !== g.z) { g.z = z; g.el.style.setProperty('--z', z); }
       } else {
         g.el.style.setProperty('--dx', g.lx.toFixed(2));
